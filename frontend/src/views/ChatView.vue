@@ -1,247 +1,529 @@
-<template>
-  <div class="chat-page">
-    <div class="conv-panel">
-      <button class="btn btn-primary new-chat" @click="newChat">＋ 新对话</button>
-      <div class="conv-list">
-        <div v-for="c in conversations" :key="c.conversationId" class="conv-item"
-          :class="{ active: c.conversationId === currentConversationId }" @click="selectConversation(c)">
-          <span class="conv-title">{{ c.title || '新对话' }}</span>
-          <button class="conv-del" title="删除对话" @click.stop="removeConversation(c)">✕</button>
-        </div>
-        <div v-if="conversations.length === 0" class="faint empty">暂无历史对话</div>
-      </div>
-    </div>
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-    <div class="chat-main">
-      <div ref="scrollEl" class="messages">
-        <template v-if="messages.length === 0 && agent">
-          <div class="welcome">
-            <div class="welcome-logo">🤖</div>
-            <h2>{{ agent.name }}</h2>
-            <p class="dim">{{ agent.description }}</p>
-            <div v-if="agent.conversation_starters?.length" class="starters">
-              <button v-for="(s, i) in agent.conversation_starters" :key="i" class="starter card"
-                :disabled="sending" @click="send(s)">
-                {{ s }}
+import { fetchAgent } from '../api/agents'
+import { streamChat } from '../api/chat'
+import { deleteConversation, fetchConversations, fetchMessages } from '../api/conversations'
+import AppHeader from '../components/dashboard/AppHeader.vue'
+import AppSidebar from '../components/dashboard/AppSidebar.vue'
+import { useAuthStore } from '../stores/auth'
+import type { Agent } from '../types/agent'
+import type { ChatMessage, Conversation } from '../types/chat'
+
+const route = useRoute()
+const auth = useAuthStore()
+
+const agent = ref<Agent | null>(null)
+const conversations = ref<Conversation[]>([])
+const currentConversationId = ref<string | null>(null)
+const messages = ref<ChatMessage[]>([])
+const input = ref('')
+const sending = ref(false)
+const loading = ref(false)
+const error = ref('')
+const messagesEl = ref<HTMLElement | null>(null)
+
+let controller: AbortController | null = null
+
+const agentId = computed(() => String(route.params.agentId ?? ''))
+
+function uuid(): string {
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+async function scrollBottom(): Promise<void> {
+  await nextTick()
+  const element = messagesEl.value
+  if (element) {
+    element.scrollTop = element.scrollHeight
+  }
+}
+
+async function loadAgent(): Promise<void> {
+  loading.value = true
+  error.value = ''
+  try {
+    agent.value = await fetchAgent(agentId.value)
+    await loadConversations()
+  } catch (loadError) {
+    error.value = loadError instanceof Error ? loadError.message : '加载智能体失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadConversations(): Promise<void> {
+  if (!agent.value) return
+  try {
+    conversations.value = await fetchConversations(agent.value.id)
+  } catch {
+    // 会话列表失败不阻塞对话
+  }
+}
+
+async function selectConversation(conversation: Conversation): Promise<void> {
+  if (sending.value) return
+
+  currentConversationId.value = conversation.id
+  try {
+    const list = await fetchMessages(conversation.id)
+    messages.value = list.map((message) => ({
+      id: message.id,
+      sender: message.sender,
+      text: message.text,
+      error: message.error,
+    }))
+    await scrollBottom()
+  } catch (loadError) {
+    error.value = loadError instanceof Error ? loadError.message : '加载消息失败'
+  }
+}
+
+function newChat(): void {
+  if (sending.value) return
+  currentConversationId.value = null
+  messages.value = []
+  error.value = ''
+}
+
+async function removeConversation(conversation: Conversation): Promise<void> {
+  try {
+    await deleteConversation(conversation.id)
+    conversations.value = conversations.value.filter((item) => item.id !== conversation.id)
+    if (currentConversationId.value === conversation.id) {
+      newChat()
+    }
+  } catch (removeError) {
+    error.value = removeError instanceof Error ? removeError.message : '删除会话失败'
+  }
+}
+
+async function send(preset?: string): Promise<void> {
+  const text = (preset ?? input.value).trim()
+  if (!text || sending.value || !agent.value) return
+
+  input.value = ''
+  error.value = ''
+  sending.value = true
+
+  const userMessage: ChatMessage = {
+    id: uuid(),
+    sender: 'user',
+    text,
+    error: false,
+  }
+  const assistant = reactive<ChatMessage>({
+    id: uuid(),
+    sender: 'agent',
+    text: '',
+    error: false,
+    streaming: true,
+  })
+  messages.value.push(userMessage, assistant)
+  await scrollBottom()
+
+  controller = new AbortController()
+
+  try {
+    await streamChat(
+      {
+        agent_id: agent.value.id,
+        text,
+        conversationId: currentConversationId.value ?? undefined,
+        messageId: userMessage.id,
+      },
+      {
+        onConversation: (data) => {
+          currentConversationId.value = data.conversationId
+          void loadConversations()
+        },
+        onMessage: (data) => {
+          assistant.text += data.text
+          void scrollBottom()
+        },
+        onFinal: (data) => {
+          assistant.id = data.messageId
+          assistant.text = data.text
+          assistant.streaming = false
+          void loadConversations()
+          auth.loadBalance()
+        },
+        onError: (message) => {
+          assistant.streaming = false
+          assistant.error = true
+          assistant.text = assistant.text || message
+          error.value = message
+        },
+      },
+      controller.signal,
+    )
+  } catch (sendError) {
+    assistant.streaming = false
+    if (sendError instanceof DOMException && sendError.name === 'AbortError') {
+      return
+    }
+    assistant.error = true
+    assistant.text = assistant.text || (sendError instanceof Error ? sendError.message : '请求失败')
+    error.value = sendError instanceof Error ? sendError.message : '请求失败'
+  } finally {
+    assistant.streaming = false
+    sending.value = false
+    controller = null
+    await scrollBottom()
+  }
+}
+
+function stop(): void {
+  controller?.abort()
+  controller = null
+}
+
+function onKeydown(event: KeyboardEvent): void {
+  if (event.isComposing) return
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    void send()
+  }
+}
+
+watch(
+  agentId,
+  async () => {
+    controller?.abort()
+    controller = null
+    sending.value = false
+    agent.value = null
+    conversations.value = []
+    currentConversationId.value = null
+    messages.value = []
+    error.value = ''
+    await loadAgent()
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  controller?.abort()
+})
+</script>
+
+<template>
+  <div class="page">
+    <AppSidebar />
+
+    <div class="main">
+      <AppHeader title="对话" />
+
+      <div class="chat-layout">
+        <aside class="conv-panel">
+          <button type="button" class="btn btn-primary new-chat" @click="newChat">＋ 新对话</button>
+
+          <div class="conv-list">
+            <button
+              v-for="conversation in conversations"
+              :key="conversation.id"
+              type="button"
+              class="conv-item"
+              :class="{ active: conversation.id === currentConversationId }"
+              @click="selectConversation(conversation)"
+            >
+              <span class="conv-title">{{ conversation.title || '新对话' }}</span>
+              <span class="conv-del" @click.stop="removeConversation(conversation)">✕</span>
+            </button>
+
+            <div v-if="conversations.length === 0" class="empty-text">暂无历史对话</div>
+          </div>
+        </aside>
+
+        <section class="chat-main">
+          <div ref="messagesEl" class="messages">
+            <div v-if="loading" class="empty-state">加载中…</div>
+
+            <div v-else-if="messages.length === 0 && agent" class="welcome">
+              <div class="welcome-logo">🤖</div>
+              <h2>{{ agent.name }}</h2>
+              <p class="sub">{{ agent.description || '开始一段新的对话' }}</p>
+
+              <div v-if="agent.starters.length" class="starters">
+                <button
+                  v-for="(starter, index) in agent.starters"
+                  :key="index"
+                  type="button"
+                  class="starter card"
+                  :disabled="sending"
+                  @click="send(starter)"
+                >
+                  {{ starter }}
+                </button>
+              </div>
+            </div>
+
+            <div
+              v-for="message in messages"
+              :key="message.id"
+              class="msg-row"
+              :class="message.sender"
+            >
+              <div class="msg-bubble" :class="{ error: message.error }">
+                <div class="msg-sender">
+                  {{ message.sender === 'user' ? '我' : agent?.name || '智能体' }}
+                </div>
+                <div class="msg-text text">
+                  {{ message.text }}<span v-if="message.streaming" class="cursor">▍</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <p v-if="error" class="error-text composer-error">{{ error }}</p>
+
+            <div class="composer-row">
+              <textarea
+                v-model="input"
+                rows="1"
+                placeholder="给智能体发消息…（Enter 发送，Shift+Enter 换行）"
+                :disabled="sending"
+                @keydown="onKeydown"
+              ></textarea>
+
+              <button v-if="sending" type="button" class="btn send" @click="stop">停止</button>
+              <button
+                v-else
+                type="button"
+                class="btn btn-primary send"
+                :disabled="!input.trim()"
+                @click="send()"
+              >
+                发送
               </button>
             </div>
           </div>
-        </template>
-
-        <div v-for="m in messages" :key="m.messageId" class="msg-row" :class="m.sender">
-          <div class="msg-bubble" :class="{ error: m.error }">
-            <div class="msg-sender">{{ m.sender === 'user' ? '我' : agent?.name || '智能体' }}</div>
-            <div class="msg-text">{{ m.text }}<span v-if="m.streaming" class="cursor">▍</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="composer">
-        <p v-if="sendError" class="error-text composer-error">{{ sendError }}</p>
-        <div class="composer-row">
-          <textarea v-model="input" rows="1" placeholder="给智能体发消息…（Enter 发送，Shift+Enter 换行）"
-            :disabled="sending" @keydown="onKeydown"></textarea>
-          <button class="btn btn-primary send" :disabled="sending || !input.trim()" @click="send()">
-            {{ sending ? '生成中…' : '发送' }}
-          </button>
-        </div>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { api, sseChat } from '../api/client'
-import { useAuthStore } from '../stores/auth'
-import type { AgentVo, ConversationVo, MessageVo } from '../types'
-
-interface ChatMessage {
-  messageId: string
-  sender: 'user' | 'agent'
-  text: string
-  error: boolean
-  streaming?: boolean
-}
-
-const route = useRoute()
-const auth = useAuthStore()
-
-const agent = ref<AgentVo | null>(null)
-const conversations = ref<ConversationVo[]>([])
-const currentConversationId = ref<string | null>(null)
-const messages = ref<ChatMessage[]>([])
-const input = ref('')
-const sending = ref(false)
-const sendError = ref('')
-const scrollEl = ref<HTMLElement | null>(null)
-
-function uuid(): string {
-  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()
-}
-
-async function scrollBottom() {
-  await nextTick()
-  if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
-}
-
-async function loadConversations() {
-  if (!agent.value) return
-  const res = await api.get<{ conversations: ConversationVo[] }>(
-    `/api/convos?agent_id=${encodeURIComponent(agent.value.agent_id)}`)
-  conversations.value = res.conversations
-}
-
-async function selectConversation(c: ConversationVo) {
-  currentConversationId.value = c.conversationId
-  const list = await api.get<MessageVo[]>(`/api/convos/${c.conversationId}/messages`)
-  messages.value = list.map((m) => ({
-    messageId: m.messageId, sender: m.sender, text: m.text, error: m.error
-  }))
-  scrollBottom()
-}
-
-async function removeConversation(c: ConversationVo) {
-  try {
-    await api.del(`/api/convos/${c.conversationId}`)
-    conversations.value = conversations.value.filter((x) => x.conversationId !== c.conversationId)
-    if (currentConversationId.value === c.conversationId) newChat()
-  } catch (e: any) {
-    sendError.value = e?.message || '删除失败'
-  }
-}
-
-function newChat() {
-  currentConversationId.value = null
-  messages.value = []
-  sendError.value = ''
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    send()
-  }
-}
-
-async function send(preset?: string) {
-  const text = (preset ?? input.value).trim()
-  if (!text || sending.value || !agent.value) return
-  input.value = ''
-  sendError.value = ''
-  sending.value = true
-
-  messages.value.push({ messageId: uuid(), sender: 'user', text, error: false })
-  const assistant: ChatMessage = { messageId: uuid(), sender: 'agent', text: '', error: false, streaming: true }
-  messages.value.push(assistant)
-  scrollBottom()
-
-  try {
-    await sseChat(
-      {
-        agent_id: agent.value.agent_id,
-        conversationId: currentConversationId.value,
-        messageId: messages.value[messages.value.length - 2].messageId,
-        text
-      },
-      {
-        onEvent: (event, data) => {
-          if (event === 'conversation') {
-            currentConversationId.value = data.conversationId
-            loadConversations()
-          } else if (event === 'message') {
-            assistant.text += data.text || ''
-            scrollBottom()
-          } else if (event === 'final') {
-            assistant.streaming = false
-            auth.loadBalance()
-            loadConversations()
-          } else if (event === 'error') {
-            assistant.streaming = false
-            assistant.error = true
-            assistant.text = assistant.text || data.message || '生成失败'
-            sendError.value = data.message || '生成失败'
-          }
-        }
-      }
-    )
-  } catch (e: any) {
-    assistant.streaming = false
-    assistant.error = true
-    assistant.text = assistant.text || e?.message || '请求失败'
-    sendError.value = e?.message || '请求失败'
-  } finally {
-    assistant.streaming = false
-    sending.value = false
-    scrollBottom()
-  }
-}
-
-watch(
-  () => route.params.agentId,
-  async (agentId) => {
-    if (!agentId) return
-    newChat()
-    try {
-      agent.value = await api.get<AgentVo>(`/api/agents/${agentId}`)
-      await loadConversations()
-    } catch (e: any) {
-      sendError.value = e?.message || '加载智能体失败'
-    }
-  },
-  { immediate: true }
-)
-</script>
-
 <style scoped>
-.chat-page { flex: 1; display: flex; min-width: 0; }
+.chat-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
 .conv-panel {
-  width: 230px; flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
+  display: flex;
+  flex: 0 0 230px;
+  flex-direction: column;
+  gap: 10px;
+  width: 230px;
   padding: 10px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
 }
-.new-chat { width: 100%; margin-bottom: 10px; }
-.conv-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+
+.new-chat {
+  width: 100%;
+}
+
+.conv-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
 .conv-item {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px; border-radius: 8px;
-  color: var(--text-dim); cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: left;
 }
-.conv-item:hover { background: var(--panel-2); }
-.conv-item.active { background: var(--panel-2); color: var(--text); }
-.conv-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.conv-del { color: var(--text-faint); font-size: 11px; padding: 2px; border-radius: 4px; visibility: hidden; }
-.conv-item:hover .conv-del { visibility: visible; }
-.conv-del:hover { color: var(--danger); }
-.empty { padding: 12px; font-size: 13px; text-align: center; }
 
-.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.messages { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.conv-item:hover {
+  background: var(--panel-2);
+}
 
-.welcome { max-width: 640px; margin: 40px auto; text-align: center; }
-.welcome-logo { font-size: 42px; margin-bottom: 10px; }
-.welcome h2 { margin-bottom: 6px; }
-.starters { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
-.starter { padding: 12px 16px; text-align: left; color: var(--text-dim); }
-.starter:hover { border-color: var(--accent); color: var(--text); }
+.conv-item.active {
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 600;
+}
 
-.msg-row { display: flex; margin-bottom: 14px; }
-.msg-row.user { justify-content: flex-end; }
-.msg-row.agent { justify-content: flex-start; }
-.msg-bubble { max-width: 76%; padding: 10px 14px; border-radius: 14px; }
-.msg-row.user .msg-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-.msg-row.agent .msg-bubble { background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-.msg-bubble.error { border-color: var(--danger); }
-.msg-sender { font-size: 11px; opacity: 0.65; margin-bottom: 4px; }
-.msg-text { white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
-.cursor { animation: blink 1s infinite; }
-@keyframes blink { 50% { opacity: 0; } }
+.conv-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.composer { padding: 12px 24px 18px; }
-.composer-error { font-size: 13px; margin-bottom: 6px; }
-.composer-row { display: flex; gap: 10px; align-items: flex-end; }
-.composer-row textarea { flex: 1; resize: none; max-height: 160px; line-height: 1.5; }
-.send { height: 42px; }
+.conv-del {
+  font-size: 11px;
+  opacity: 0;
+}
+
+.conv-item:hover .conv-del {
+  opacity: 0.6;
+}
+
+.conv-del:hover {
+  color: var(--danger);
+  opacity: 1;
+}
+
+.empty-text {
+  padding: 12px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+.chat-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.messages {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.welcome {
+  max-width: 640px;
+  margin: 48px auto;
+  text-align: center;
+}
+
+.welcome-logo {
+  margin-bottom: 10px;
+  font-size: 42px;
+}
+
+.welcome h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.starters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.starter {
+  padding: 12px 16px;
+  color: var(--text-dim);
+  text-align: left;
+}
+
+.starter:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.msg-row {
+  display: flex;
+  margin-bottom: 14px;
+}
+
+.msg-row.user {
+  justify-content: flex-end;
+}
+
+.msg-row.agent {
+  justify-content: flex-start;
+}
+
+.msg-bubble {
+  max-width: 76%;
+  padding: 10px 14px;
+  border-radius: 14px;
+}
+
+.msg-row.user .msg-bubble {
+  border-bottom-right-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.msg-row.agent .msg-bubble {
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  background: var(--panel);
+}
+
+.msg-bubble.error {
+  border-color: var(--danger);
+}
+
+.msg-sender {
+  margin-bottom: 4px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.msg-text {
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.composer {
+  padding: 12px 24px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.composer-error {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.composer-row textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 160px;
+  resize: none;
+}
+
+.send {
+  height: 40px;
+}
+
+@media (max-width: 820px) {
+  .conv-panel {
+    flex-basis: 180px;
+    width: 180px;
+  }
+}
 </style>

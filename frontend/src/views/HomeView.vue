@@ -1,101 +1,214 @@
-<template>
-  <div class="home">
-    <div class="home-head">
-      <h2>{{ heading }}</h2>
-      <p class="dim">选择一个智能体开始对话</p>
-    </div>
-    <div v-if="loading" class="dim">加载中…</div>
-    <div v-else-if="agents.length === 0" class="dim">该部门暂无智能体</div>
-    <div v-else class="grid">
-      <button v-for="a in agents" :key="a.agent_id" class="agent-card card" @click="openChat(a)">
-        <div class="agent-top">
-          <span class="agent-avatar">🤖</span>
-          <span class="agent-name">{{ a.name }}</span>
-          <span v-if="a.department" class="agent-dept">{{ a.department }}</span>
-        </div>
-        <p class="agent-desc dim">{{ a.description }}</p>
-        <div class="agent-foot">
-          <span class="badge">{{ a.category }}</span>
-          <span v-if="a.isPreset" class="badge preset">预置</span>
-        </div>
-      </button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { api } from '../api/client'
-import type { AgentVo } from '../types'
+import { computed, onMounted, ref } from 'vue'
 
-interface AgentsPage { object: string; data: AgentVo[]; has_more: boolean }
+import { fetchAgents, fetchDepartments } from '../api/agents'
+import { fetchConversations } from '../api/conversations'
+import AgentCard from '../components/dashboard/AgentCard.vue'
+import AppHeader from '../components/dashboard/AppHeader.vue'
+import AppSidebar from '../components/dashboard/AppSidebar.vue'
+import { useAuthStore } from '../stores/auth'
+import type { Agent, Department } from '../types/agent'
+import type { Conversation } from '../types/chat'
 
-const route = useRoute()
-const router = useRouter()
-const agents = ref<AgentVo[]>([])
+interface QuickLink {
+  label: string
+  path: string
+  icon: string
+}
+
+const auth = useAuthStore()
+
+const agents = ref<Agent[]>([])
+const departments = ref<Department[]>([])
+const conversations = ref<Conversation[]>([])
 const loading = ref(false)
+const error = ref('')
 
-const deptQuery = computed(() => (route.query.department as string) || '')
-const heading = computed(() => {
-  if (deptQuery.value === '__all__') return '智能体中心'
-  if (deptQuery.value) return deptQuery.value
-  return '首页 · 全部智能体'
-})
+const hotAgents = computed(() => agents.value.slice(0, 8))
+const stats = computed(() => [
+  { label: '智能体总数', value: agents.value.length, unit: '个', icon: '🤖' },
+  { label: '部门数', value: departments.value.length, unit: '个', icon: '🏢' },
+  { label: '积分余额', value: auth.balance?.tokenCredits ?? 0, unit: '', icon: '⚡' },
+  { label: '会话数', value: conversations.value.length, unit: '个', icon: '💬' },
+])
 
-async function load() {
+const quickLinks: QuickLink[] = [
+  { label: '流量部门', path: '/traffic', icon: '📈' },
+  { label: '视频部门', path: '/video', icon: '🎬' },
+  { label: '文案编导组', path: '/copywriting', icon: '✍️' },
+  { label: '直播增长组', path: '/live', icon: '📊' },
+  { label: 'AI销售部门', path: '/sales', icon: '💰' },
+  { label: '职能成本部门', path: '/cost', icon: '🧾' },
+  { label: 'BOSS决策部门', path: '/boss', icon: '🏆' },
+  { label: '智能体中心', path: '/agent-center', icon: '🤖' },
+  { label: '灵感中心', path: '/inspiration', icon: '💡' },
+]
+
+async function load(): Promise<void> {
   loading.value = true
+  error.value = ''
   try {
-    const dept = deptQuery.value
-    const path = dept && dept !== '__all__'
-      ? `/api/agents?department=${encodeURIComponent(dept)}&isPreset=1`
-      : '/api/agents?requiredPermission=1'
-    const res = await api.get<AgentsPage>(path)
-    agents.value = res.data
-  } catch {
-    agents.value = []
+    const [agentList, departmentList, conversationList] = await Promise.all([
+      fetchAgents(),
+      fetchDepartments(),
+      fetchConversations(),
+    ])
+    agents.value = agentList
+    departments.value = departmentList
+    conversations.value = conversationList
+  } catch (loadError) {
+    error.value = loadError instanceof Error ? loadError.message : '首页数据加载失败'
   } finally {
     loading.value = false
   }
 }
 
-function openChat(a: AgentVo) {
-  router.push(`/chat/${a.agent_id}`)
-}
-
-watch(deptQuery, load, { immediate: true })
+onMounted(() => {
+  if (!auth.loaded) {
+    auth.load()
+  }
+  load()
+})
 </script>
 
+<template>
+  <div class="page">
+    <AppSidebar />
+
+    <div class="main">
+      <AppHeader title="首页" />
+
+      <div class="content">
+        <section class="hero">
+          <div>
+            <p class="hero-kicker">AI 智能体工作台</p>
+            <h1>珠峰AI超级系统</h1>
+            <p class="hero-desc">10 个业务页面，覆盖流量、视频、文案、直播、销售、职能与决策。</p>
+          </div>
+          <router-link class="btn btn-primary" to="/agent-center">进入智能体中心</router-link>
+        </section>
+
+        <p v-if="error" class="error-text">{{ error }}</p>
+        <p v-if="loading" class="empty-state">加载中…</p>
+
+        <section class="stat-grid">
+          <div v-for="item in stats" :key="item.label" class="stat-card">
+            <span class="stat-icon">{{ item.icon }}</span>
+            <div>
+              <p class="stat-label">{{ item.label }}</p>
+              <p class="stat-value">
+                {{ item.value.toLocaleString('zh-CN') }}
+                <span v-if="item.unit" class="stat-unit">{{ item.unit }}</span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div class="columns">
+          <section class="panel">
+            <header class="panel-head">
+              <h2>常用智能体</h2>
+              <router-link to="/agent-center">全部 ›</router-link>
+            </header>
+
+            <div class="agent-grid">
+              <AgentCard v-for="agent in hotAgents" :key="agent.id" :agent="agent" />
+            </div>
+
+            <div v-if="!loading && hotAgents.length === 0" class="empty-state">暂无智能体</div>
+          </section>
+
+          <aside class="side">
+            <section class="panel">
+              <header class="panel-head">
+                <h2>快捷入口</h2>
+              </header>
+
+              <div class="quick-grid">
+                <router-link
+                  v-for="item in quickLinks"
+                  :key="item.path"
+                  class="quick-item"
+                  :to="item.path"
+                >
+                  <span>{{ item.icon }}</span>
+                  <span>{{ item.label }}</span>
+                </router-link>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.home { flex: 1; overflow-y: auto; padding: 28px 32px; }
-.home-head { margin-bottom: 20px; }
-.home-head h2 { font-size: 20px; margin-bottom: 4px; }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.hero-kicker {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hero-desc {
+  margin: 6px 0 0;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.columns {
+  display: flex;
+  align-items: flex-start;
   gap: 14px;
 }
-.agent-card {
-  text-align: left;
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-  transition: border-color 0.15s, transform 0.15s;
+
+.columns .panel {
+  flex: 1;
+  min-width: 0;
 }
-.agent-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.agent-top { display: flex; align-items: center; gap: 8px; }
-.agent-avatar { font-size: 20px; }
-.agent-name { font-weight: 600; }
-.agent-dept { margin-left: auto; font-size: 12px; color: var(--text-faint); }
-.agent-desc {
-  font-size: 13px; line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 39px;
+
+.side {
+  flex: 0 0 300px;
 }
-.agent-foot { display: flex; gap: 6px; }
-.badge {
-  font-size: 11px; padding: 2px 8px; border-radius: 999px;
-  background: var(--panel-2); color: var(--text-dim);
+
+@media (max-width: 1100px) {
+  .columns {
+    flex-direction: column;
+  }
+
+  .side {
+    flex-basis: auto;
+    width: 100%;
+  }
 }
-.badge.preset { background: rgba(16, 163, 127, 0.15); color: var(--accent); }
+
+@media (max-width: 680px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
