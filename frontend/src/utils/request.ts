@@ -1,3 +1,6 @@
+import axios from 'axios'
+import type { AxiosError } from 'axios'
+
 import type { ApiErrorBody } from '../types/api'
 import { clearToken, getToken } from './storage'
 
@@ -11,46 +14,46 @@ export class ApiError extends Error {
   }
 }
 
+export const http = axios.create({
+  timeout: 15000,
+})
+
+http.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.set('Authorization', `Bearer ${token}`)
+  }
+  return config
+})
+
+http.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<ApiErrorBody>) => {
+    const status = error.response?.status ?? 0
+
+    if (status === 401) {
+      clearToken()
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
+      return Promise.reject(new ApiError('未登录或登录已过期', 401))
+    }
+
+    const body = error.response?.data
+    const message = body?.message || error.message || '请求失败'
+    return Promise.reject(new ApiError(message, status))
+  },
+)
+
 export async function request<T>(
   method: string,
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const token = getToken()
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  }
-  if (token) headers.Authorization = `Bearer ${token}`
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
-
-  const response = await fetch(path, {
+  const response = await http.request<T>({
     method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    url: path,
+    data: body,
   })
-
-  if (response.status === 401) {
-    clearToken()
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login'
-    }
-    throw new ApiError('未登录或登录已过期', 401)
-  }
-
-  if (!response.ok) {
-    let message = `请求失败 (${response.status})`
-    try {
-      const data = (await response.json()) as ApiErrorBody
-      if (data.message) message = data.message
-    } catch {
-      // 非 JSON 错误体，使用默认文案
-    }
-    throw new ApiError(message, response.status)
-  }
-
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  return (await response.json()) as T
+  return response.data
 }
