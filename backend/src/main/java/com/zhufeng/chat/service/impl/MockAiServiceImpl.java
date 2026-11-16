@@ -1,14 +1,15 @@
-package com.zhufeng.chat.controller;
+package com.zhufeng.chat.service.impl;
 
 import com.zhufeng.chat.entity.Agent;
+import com.zhufeng.chat.service.AiService;
+import org.springframework.stereotype.Service;
 
-/** Deterministic mock reply generator, standing in for a real LLM upstream. */
-final class MockAi {
+/** 确定性 mock 回复，替代真实大模型上游。 */
+@Service
+public class MockAiServiceImpl implements AiService {
 
-    private MockAi() {
-    }
-
-    static String generateReply(Agent agent, String userText) {
+    @Override
+    public String generateReply(Agent agent, String userText) {
         String topic = userText.length() > 30 ? userText.substring(0, 30) + "…" : userText;
         return "你好！我是" + agent.getName() + "，隶属于" + agent.getCategory() + "。\n\n"
                 + "关于「" + topic + "」，我的初步分析如下：\n\n"

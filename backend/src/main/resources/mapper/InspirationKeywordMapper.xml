@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhufeng.chat.mapper.InspirationKeywordMapper">
+
+    <resultMap id="BaseResultMap" type="com.zhufeng.chat.entity.InspirationKeyword">
+        <id     column="id"               property="id"/>
+        <result column="user_id"          property="userId"/>
+        <result column="keyword"          property="keyword"/>
+        <result column="sort_order"       property="sortOrder"/>
+        <result column="cache_expires_at" property="cacheExpiresAt"/>
+        <result column="created_at"       property="createdAt"/>
+    </resultMap>
+
+</mapper>

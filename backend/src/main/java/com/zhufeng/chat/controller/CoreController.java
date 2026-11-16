@@ -1,12 +1,10 @@
 package com.zhufeng.chat.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.zhufeng.chat.common.ApiException;
 import com.zhufeng.chat.common.UserContext;
-import com.zhufeng.chat.entity.Balance;
-import com.zhufeng.chat.entity.User;
-import com.zhufeng.chat.mapper.BalanceMapper;
-import com.zhufeng.chat.mapper.UserMapper;
+import com.zhufeng.chat.dto.BalanceDto;
+import com.zhufeng.chat.dto.UserDto;
+import com.zhufeng.chat.service.BalanceService;
+import com.zhufeng.chat.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,12 +16,12 @@ import java.util.Map;
 @RestController
 public class CoreController {
 
-    private final UserMapper userMapper;
-    private final BalanceMapper balanceMapper;
+    private final UserService userService;
+    private final BalanceService balanceService;
 
-    public CoreController(UserMapper userMapper, BalanceMapper balanceMapper) {
-        this.userMapper = userMapper;
-        this.balanceMapper = balanceMapper;
+    public CoreController(UserService userService, BalanceService balanceService) {
+        this.userService = userService;
+        this.balanceService = balanceService;
     }
 
     @GetMapping("/health")
@@ -45,23 +43,13 @@ public class CoreController {
     }
 
     @GetMapping("/api/user")
-    public Map<String, Object> user() {
-        User user = currentUser();
-        return AuthController.toVo(user);
+    public UserDto user() {
+        return userService.getUser(UserContext.require());
     }
 
     @GetMapping("/api/balance")
-    public Map<String, Object> balance() {
-        User user = currentUser();
-        QueryWrapper<Balance> qw = new QueryWrapper<>();
-        qw.eq("user_id", user.getId());
-        Balance balance = balanceMapper.selectOne(qw);
-        Map<String, Object> m = new HashMap<>();
-        m.put("tokenCredits", balance == null ? 0 : balance.getTokenCredits());
-        m.put("autoRefillEnabled", balance != null && Boolean.TRUE.equals(balance.getAutoRefillEnabled()));
-        m.put("expireAt", balance == null ? null : balance.getExpireAt());
-        m.put("user", user.getPublicId());
-        return m;
+    public BalanceDto balance() {
+        return balanceService.getBalance(UserContext.require());
     }
 
     @GetMapping("/api/notifications")
@@ -96,12 +84,5 @@ public class CoreController {
     @GetMapping("/api/banner")
     public Map<String, Object> banner() {
         return Map.of("show", false);
-    }
-
-    private User currentUser() {
-        Long userId = UserContext.require();
-        User user = userMapper.selectById(userId);
-        if (user == null) throw new ApiException(401, "user not found");
-        return user;
     }
 }

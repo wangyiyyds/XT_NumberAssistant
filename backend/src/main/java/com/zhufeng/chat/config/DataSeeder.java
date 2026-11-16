@@ -1,9 +1,8 @@
 package com.zhufeng.chat.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zhufeng.chat.common.PasswordUtil;
 import com.zhufeng.chat.entity.*;
-import com.zhufeng.chat.mapper.*;
+import com.zhufeng.chat.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -16,32 +15,33 @@ import java.util.UUID;
 @Component
 public class DataSeeder implements CommandLineRunner {
 
-    private final UserMapper userMapper;
-    private final BalanceMapper balanceMapper;
-    private final DepartmentMapper departmentMapper;
-    private final AgentMapper agentMapper;
-    private final InspirationKeywordMapper keywordMapper;
-    private final InspirationVideoMapper videoMapper;
+    private final UserRepository userRepository;
+    private final BalanceRepository balanceRepository;
+    private final DepartmentRepository departmentRepository;
+    private final AgentRepository agentRepository;
+    private final InspirationKeywordRepository keywordRepository;
+    private final InspirationVideoRepository videoRepository;
 
     @Value("${app.balance.start}")
     private long startBalance;
 
-    public DataSeeder(UserMapper userMapper, BalanceMapper balanceMapper, DepartmentMapper departmentMapper,
-                      AgentMapper agentMapper, InspirationKeywordMapper keywordMapper, InspirationVideoMapper videoMapper) {
-        this.userMapper = userMapper;
-        this.balanceMapper = balanceMapper;
-        this.departmentMapper = departmentMapper;
-        this.agentMapper = agentMapper;
-        this.keywordMapper = keywordMapper;
-        this.videoMapper = videoMapper;
+    public DataSeeder(UserRepository userRepository, BalanceRepository balanceRepository,
+                      DepartmentRepository departmentRepository, AgentRepository agentRepository,
+                      InspirationKeywordRepository keywordRepository, InspirationVideoRepository videoRepository) {
+        this.userRepository = userRepository;
+        this.balanceRepository = balanceRepository;
+        this.departmentRepository = departmentRepository;
+        this.agentRepository = agentRepository;
+        this.keywordRepository = keywordRepository;
+        this.videoRepository = videoRepository;
     }
 
     @Override
     public void run(String... args) {
-        if (departmentMapper.selectCount(null) == 0) {
+        if (departmentRepository.count() == 0) {
             seedDepartmentsAndAgents();
         }
-        if (userMapper.selectCount(null) == 0) {
+        if (userRepository.count() == 0) {
             seedUser();
         }
     }
@@ -57,20 +57,20 @@ public class DataSeeder implements CommandLineRunner {
         user.setDisabled(false);
         user.setContractReadAt(LocalDateTime.now());
         user.setCreatedAt(LocalDateTime.now());
-        userMapper.insert(user);
+        userRepository.save(user);
 
         Balance balance = new Balance();
         balance.setUserId(user.getId());
         balance.setTokenCredits(startBalance);
         balance.setAutoRefillEnabled(true);
         balance.setExpireAt(LocalDateTime.now().plusYears(1));
-        balanceMapper.insert(balance);
+        balanceRepository.save(balance);
 
         InspirationKeyword kw = new InspirationKeyword();
         kw.setUserId(user.getId());
         kw.setKeyword("Aigc培训");
         kw.setSortOrder(0);
-        keywordMapper.insert(kw);
+        keywordRepository.save(kw);
         seedVideos(kw.getId());
     }
 
@@ -98,7 +98,7 @@ public class DataSeeder implements CommandLineRunner {
             video.setTitle(v.title());
             video.setLikes(v.likes());
             video.setLowFansHighLikes(v.lowFans());
-            videoMapper.insert(video);
+            videoRepository.save(video);
         }
     }
 
@@ -121,26 +121,14 @@ public class DataSeeder implements CommandLineRunner {
             dept.setEnabled(true);
             dept.setBrandOnly(false);
             dept.setSortOrder(order++);
-            departmentMapper.insert(dept);
+            departmentRepository.save(dept);
 
             for (String agentName : d.agents()) {
-                Agent agent = new Agent();
-                agent.setPublicId(UUID.randomUUID().toString());
-                agent.setDepartmentId(dept.getId());
-                agent.setName(agentName);
-                agent.setDescription("我是" + d.name() + "的" + agentName + "，可以帮你完成相关专业任务。");
-                agent.setCategory(d.name());
-                agent.setIsPreset(true);
-                agent.setConversationStarters("[\"你好，请介绍一下你能做什么\",\"帮我出一个工作方案\",\"我遇到了一个问题，想请你分析\"]");
-                agent.setInstructions("你是「" + agentName + "」，隶属于" + d.name() + "。请用专业、友好的中文回答用户问题。");
-                agent.setCreatedAt(LocalDateTime.now());
-                agentMapper.insert(agent);
+                seedAgent(dept, agentName, d.name(), "通用".equals(d.name()) ? "通用" : d.name());
             }
         }
         // a few extra agents visible in 智能体中心 (no department filter)
-        QueryWrapper<Department> qw = new QueryWrapper<>();
-        qw.eq("name", "BOSS决策部门");
-        Department boss = departmentMapper.selectOne(qw);
+        Department boss = departmentRepository.findByNameOrPublicId("BOSS决策部门");
         for (String name : List.of("珠峰全能助手", "灵感激发器")) {
             Agent agent = new Agent();
             agent.setPublicId(UUID.randomUUID().toString());
@@ -152,7 +140,21 @@ public class DataSeeder implements CommandLineRunner {
             agent.setConversationStarters("[\"今天有什么可以帮你的？\"]");
             agent.setInstructions("你是通用助手「" + name + "」。");
             agent.setCreatedAt(LocalDateTime.now());
-            agentMapper.insert(agent);
+            agentRepository.save(agent);
         }
+    }
+
+    private void seedAgent(Department dept, String agentName, String deptName, String category) {
+        Agent agent = new Agent();
+        agent.setPublicId(UUID.randomUUID().toString());
+        agent.setDepartmentId(dept.getId());
+        agent.setName(agentName);
+        agent.setDescription("我是" + deptName + "的" + agentName + "，可以帮你完成相关专业任务。");
+        agent.setCategory(category);
+        agent.setIsPreset(true);
+        agent.setConversationStarters("[\"你好，请介绍一下你能做什么\",\"帮我出一个工作方案\",\"我遇到了一个问题，想请你分析\"]");
+        agent.setInstructions("你是「" + agentName + "」，隶属于" + deptName + "。请用专业、友好的中文回答用户问题。");
+        agent.setCreatedAt(LocalDateTime.now());
+        agentRepository.save(agent);
     }
 }

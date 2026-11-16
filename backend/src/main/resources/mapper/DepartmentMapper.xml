@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhufeng.chat.mapper.DepartmentMapper">
+
+    <resultMap id="BaseResultMap" type="com.zhufeng.chat.entity.Department">
+        <id     column="id"         property="id"/>
+        <result column="public_id"  property="publicId"/>
+        <result column="name"       property="name"/>
+        <result column="enabled"    property="enabled"/>
+        <result column="brand_only" property="brandOnly"/>
+        <result column="sort_order" property="sortOrder"/>
+    </resultMap>
+
+</mapper>

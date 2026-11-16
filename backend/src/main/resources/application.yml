@@ -1,27 +1,15 @@
+# 公共配置：只放与环境无关的内容，数据源/密钥/日志等在各环境 profile 文件中配置
 server:
   port: 8080
 
 spring:
   application:
     name: zhufeng-chat
+  profiles:
+    # 默认开发环境，启动时可用 --spring.profiles.active=prod 覆盖
+    active: dev
   datasource:
-    # H2 file database in MySQL compatibility mode - runs out of the box.
-    # To switch to MySQL, replace with:
-    #   url: jdbc:mysql://localhost:3306/zhufeng_chat?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    #   driver-class-name: com.mysql.cj.jdbc.Driver
-    # and add the mysql-connector-j dependency.
-    url: jdbc:mysql://localhost:3306/video_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: 123456
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
   jackson:
     default-property-inclusion: non_null
 
@@ -36,7 +24,13 @@ mybatis-plus:
 
 app:
   jwt:
-    secret: zhufeng-chat-clone-secret-key-change-in-production
     expire-hours: 168
   balance:
     start: 100000
+
+# swagger-ui 路径（是否启用由 profile 控制）
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.htm
+  api-docs:
+    path: /v3/api-docs
