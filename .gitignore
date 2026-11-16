@@ -1,0 +1,18 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Java 构建产物
+backend/target/
+*.class
+*.jar
+*.war
+
+# H2 本地数据
+backend/data/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
