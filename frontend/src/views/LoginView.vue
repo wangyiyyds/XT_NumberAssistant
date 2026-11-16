@@ -39,7 +39,7 @@ async function submit(): Promise<void> {
   <div class="login-page">
     <div class="login-card card">
       <div class="logo">🏔</div>
-      <h1>珠峰AI超级系统</h1>
+      <h1>先霆AI超级系统</h1>
 
       <div class="tabs">
         <button

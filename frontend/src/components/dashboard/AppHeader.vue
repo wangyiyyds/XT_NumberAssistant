@@ -23,7 +23,7 @@ onMounted(() => {
 
 <template>
   <header class="app-header">
-    <div class="header-title">{{ title || '珠峰AI超级系统' }}</div>
+    <div class="header-title">{{ title || '先霆AI超级系统' }}</div>
 
     <div class="header-right">
       <span class="balance" title="Token 积分余额">⚡ {{ credits }}</span>

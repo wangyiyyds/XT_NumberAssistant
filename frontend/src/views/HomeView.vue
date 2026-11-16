@@ -82,7 +82,7 @@ onMounted(() => {
         <section class="hero">
           <div>
             <p class="hero-kicker">AI 智能体工作台</p>
-            <h1>珠峰AI超级系统</h1>
+            <h1>先霆AI超级系统</h1>
             <p class="hero-desc">10 个业务页面，覆盖流量、视频、文案、直播、销售、职能与决策。</p>
           </div>
           <router-link class="btn btn-primary" to="/agent-center">进入智能体中心</router-link>

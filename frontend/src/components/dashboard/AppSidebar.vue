@@ -51,8 +51,8 @@ function handleLogout(): void {
 <template>
   <aside class="sidebar" :class="{ collapsed }">
     <div class="brand">
-      <span class="brand-mark">珠</span>
-      <span v-if="!collapsed" class="brand-text">珠峰AI</span>
+      <span class="brand-mark">先</span>
+      <span v-if="!collapsed" class="brand-text">先霆AI</span>
     </div>
 
     <nav class="menu">

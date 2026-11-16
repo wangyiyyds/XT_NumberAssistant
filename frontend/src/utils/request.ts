@@ -2,6 +2,7 @@ import axios from 'axios'
 import type { AxiosError } from 'axios'
 
 import type { ApiErrorBody } from '../types/api'
+import { brandData, brandText } from './brand'
 import { clearToken, getToken } from './storage'
 
 export class ApiError extends Error {
@@ -40,8 +41,8 @@ http.interceptors.response.use(
     }
 
     const body = error.response?.data
-    const message = body?.message || error.message || '请求失败'
-    return Promise.reject(new ApiError(message, status))
+    const rawMessage = body?.message || error.message || '请求失败'
+    return Promise.reject(new ApiError(brandText(rawMessage), status))
   },
 )
 
@@ -55,5 +56,6 @@ export async function request<T>(
     url: path,
     data: body,
   })
-  return response.data
+  // 显示层品牌兜底：接口数据里的旧品牌名统一换成新品牌名
+  return brandData(response.data)
 }

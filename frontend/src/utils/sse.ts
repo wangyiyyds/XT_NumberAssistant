@@ -1,3 +1,4 @@
+import { brandData, brandText } from './brand'
 import { getToken } from './storage'
 
 export interface SseHandlers {
@@ -32,7 +33,7 @@ function dispatchFrame(frame: string, handlers: SseHandlers): void {
   } catch {
     // 保留原始文本
   }
-  handlers.onEvent(event, data)
+  handlers.onEvent(event, brandData(data))
 }
 
 export async function streamSse(
@@ -57,7 +58,7 @@ export async function streamSse(
     let message = `请求失败 (${response.status})`
     try {
       const data = (await response.json()) as { message?: string }
-      if (data?.message) message = data.message
+      if (data?.message) message = brandText(data.message)
     } catch {
       // 非 JSON 错误体
     }
