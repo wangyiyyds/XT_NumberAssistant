@@ -4,7 +4,7 @@ server:
 
 spring:
   application:
-    name: zhufeng-chat
+    name: xianting-chat
   profiles:
     # 默认开发环境，启动时可用 --spring.profiles.active=prod 覆盖
     active: dev

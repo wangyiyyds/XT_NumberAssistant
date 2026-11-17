@@ -15,8 +15,8 @@ spring:
 
 logging:
   level:
-    com.zhufeng.chat: debug
+    com.xianting.chat: debug
 
 app:
   jwt:
-    secret: zhufeng-chat-clone-secret-key-change-in-production
+    secret: xianting-chat-clone-secret-key-change-in-production

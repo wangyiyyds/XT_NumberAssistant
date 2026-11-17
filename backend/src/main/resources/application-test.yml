@@ -11,8 +11,8 @@ spring:
 
 logging:
   level:
-    com.zhufeng.chat: info
+    com.xianting.chat: info
 
 app:
   jwt:
-    secret: ${JWT_SECRET:zhufeng-chat-test-secret-only-for-testing}
+    secret: ${JWT_SECRET:xianting-chat-test-secret-only-for-testing}

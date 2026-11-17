@@ -12,7 +12,7 @@ spring:
 logging:
   level:
     root: warn
-    com.zhufeng.chat: info
+    com.xianting.chat: info
 
 springdoc:
   api-docs:
