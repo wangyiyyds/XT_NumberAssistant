@@ -1,0 +1,16 @@
+package com.xianting.chat.converter;
+
+import com.xianting.chat.dto.InspirationVideoDto;
+import com.xianting.chat.entity.InspirationVideo;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+/** InspirationVideo 实体 <-> InspirationVideoDto 转换器 */
+@Mapper(componentModel = "spring")
+public interface InspirationVideoConverter {
+
+    @Mapping(target = "lowFansHighLikes", expression = "java(Boolean.TRUE.equals(video.getLowFansHighLikes()))")
+    InspirationVideoDto toDto(InspirationVideo video);
+
+    InspirationVideo toEntity(InspirationVideoDto dto);
+}
