@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { Agent } from '../../types/agent'
 
+import { departmentRanks } from '../../constants/nav'
 import AgentCard from './AgentCard.vue'
 import AppHeader from './AppHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string
     description?: string
@@ -19,6 +22,9 @@ withDefaults(
     error: '',
   },
 )
+
+// 这里传进来的就是该部门的全量列表，序号与首页 / 智能体中心算法一致
+const ranks = computed(() => departmentRanks(props.agents))
 </script>
 
 <template>
@@ -41,7 +47,12 @@ withDefaults(
 
         <div v-if="loading" class="empty-state">加载中…</div>
         <div v-else class="agent-grid">
-          <AgentCard v-for="agent in agents" :key="agent.id" :agent="agent" />
+          <AgentCard
+            v-for="agent in agents"
+            :key="agent.id"
+            :agent="agent"
+            :rank="ranks.get(agent.id)"
+          />
         </div>
 
         <div v-if="!loading && !error && agents.length === 0" class="empty-state">

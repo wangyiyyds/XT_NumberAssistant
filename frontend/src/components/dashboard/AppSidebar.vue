@@ -2,26 +2,12 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { Expand, Fold, SwitchButton } from '@element-plus/icons-vue'
+
+import { NAV_ITEMS } from '../../constants/nav'
 import { useAuthStore } from '../../stores/auth'
 
-interface MenuItem {
-  label: string
-  path: string
-  icon: string
-}
-
-const menus: MenuItem[] = [
-  { label: '首页', path: '/', icon: '🏠' },
-  { label: '流量部门', path: '/traffic', icon: '📈' },
-  { label: '视频部门', path: '/video', icon: '🎬' },
-  { label: '文案编导组', path: '/copywriting', icon: '✍️' },
-  { label: '直播增长组', path: '/live', icon: '📊' },
-  { label: 'AI销售部门', path: '/sales', icon: '💰' },
-  { label: '职能成本部门', path: '/cost', icon: '🧾' },
-  { label: 'BOSS决策部门', path: '/boss', icon: '🏆' },
-  { label: '智能体中心', path: '/agent-center', icon: '🤖' },
-  { label: '灵感中心', path: '/inspiration', icon: '💡' },
-]
+const menus = NAV_ITEMS
 
 const route = useRoute()
 const router = useRouter()
@@ -65,7 +51,7 @@ function handleLogout(): void {
         :title="item.label"
         @click="go(item.path)"
       >
-        <span class="menu-icon">{{ item.icon }}</span>
+        <span class="menu-icon app-icon"><component :is="item.icon" /></span>
         <span v-if="!collapsed" class="menu-label">{{ item.label }}</span>
       </button>
     </nav>
@@ -77,11 +63,11 @@ function handleLogout(): void {
         :title="collapsed ? '展开侧栏' : '收起侧栏'"
         @click="collapsed = !collapsed"
       >
-        <span class="menu-icon">{{ collapsed ? '»' : '«' }}</span>
+        <span class="menu-icon app-icon"><component :is="collapsed ? Expand : Fold" /></span>
         <span v-if="!collapsed" class="menu-label">收起侧栏</span>
       </button>
       <button type="button" class="menu-item danger" title="退出登录" @click="handleLogout">
-        <span class="menu-icon">⏻</span>
+        <span class="menu-icon app-icon"><SwitchButton /></span>
         <span v-if="!collapsed" class="menu-label">退出登录</span>
       </button>
     </div>
@@ -167,7 +153,7 @@ function handleLogout(): void {
 }
 
 .menu-item.active {
-  background: rgba(16, 163, 127, 0.12);
+  background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
 }
@@ -178,8 +164,7 @@ function handleLogout(): void {
 
 .menu-icon {
   flex: 0 0 18px;
-  font-size: 15px;
-  text-align: center;
+  font-size: 17px;
 }
 
 .menu-label {

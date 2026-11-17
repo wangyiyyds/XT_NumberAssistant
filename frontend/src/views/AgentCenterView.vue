@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import { Plus } from '@element-plus/icons-vue'
+
 import { fetchAgents } from '../api/agents'
 import AgentCard from '../components/dashboard/AgentCard.vue'
 import AppHeader from '../components/dashboard/AppHeader.vue'
 import AppSidebar from '../components/dashboard/AppSidebar.vue'
+import { departmentRanks } from '../constants/nav'
 import type { Agent } from '../types/agent'
 
 const agents = ref<Agent[]>([])
@@ -12,6 +15,9 @@ const loading = ref(false)
 const error = ref('')
 const keyword = ref('')
 const notice = ref('')
+
+// 序号按完整列表算，搜索过滤不会让同一个智能体换图标
+const ranks = computed(() => departmentRanks(agents.value))
 
 const filteredAgents = computed(() => {
   const query = keyword.value.trim().toLowerCase()
@@ -67,11 +73,16 @@ onMounted(load)
 
         <div class="agent-grid">
           <button type="button" class="create-card" @click="createAgent">
-            <span class="create-plus">＋</span>
+            <span class="create-plus app-icon"><Plus /></span>
             <span>创建智能体</span>
           </button>
 
-          <AgentCard v-for="agent in filteredAgents" :key="agent.id" :agent="agent" />
+          <AgentCard
+            v-for="agent in filteredAgents"
+            :key="agent.id"
+            :agent="agent"
+            :rank="ranks.get(agent.id)"
+          />
         </div>
 
         <div v-if="!loading && filteredAgents.length === 0" class="empty-state">

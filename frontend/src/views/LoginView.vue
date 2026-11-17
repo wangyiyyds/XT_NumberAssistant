@@ -38,7 +38,7 @@ async function submit(): Promise<void> {
 <template>
   <div class="login-page">
     <div class="login-card card">
-      <div class="logo">🏔</div>
+      <div class="logo">先</div>
       <h1>先霆AI超级系统</h1>
 
       <div class="tabs">
@@ -99,7 +99,7 @@ async function submit(): Promise<void> {
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: radial-gradient(ellipse at top, #2a2a2a, var(--bg));
+  background: radial-gradient(ellipse at top, #eaf3fe 0%, var(--bg) 60%);
 }
 
 .login-card {
@@ -109,7 +109,16 @@ async function submit(): Promise<void> {
 }
 
 .logo {
-  font-size: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
 }
 
 h1 {

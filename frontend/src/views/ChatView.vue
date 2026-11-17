@@ -2,11 +2,14 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { fetchAgent } from '../api/agents'
+import { fetchAgent, fetchAgents } from '../api/agents'
 import { streamChat } from '../api/chat'
 import { deleteConversation, fetchConversations, fetchMessages } from '../api/conversations'
+import { Close, Plus } from '@element-plus/icons-vue'
+
 import AppHeader from '../components/dashboard/AppHeader.vue'
 import AppSidebar from '../components/dashboard/AppSidebar.vue'
+import { agentTile, departmentRanks } from '../constants/nav'
 import { useAuthStore } from '../stores/auth'
 import type { Agent } from '../types/agent'
 import type { ChatMessage, Conversation } from '../types/chat'
@@ -15,6 +18,11 @@ const route = useRoute()
 const auth = useAuthStore()
 
 const agent = ref<Agent | null>(null)
+// 欢迎区图标要和智能体卡片一致，所以也要拿到该智能体在部门内的序号
+const agentRank = ref<number | undefined>(undefined)
+const welcomeTile = computed(() =>
+  agentTile(agent.value?.name ?? '', agent.value?.department || '', agentRank.value),
+)
 const conversations = ref<Conversation[]>([])
 const currentConversationId = ref<string | null>(null)
 const messages = ref<ChatMessage[]>([])
@@ -47,11 +55,24 @@ async function loadAgent(): Promise<void> {
   error.value = ''
   try {
     agent.value = await fetchAgent(agentId.value)
-    await loadConversations()
+    await Promise.all([loadConversations(), loadDepartmentRank()])
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : '加载智能体失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadDepartmentRank(): Promise<void> {
+  const department = agent.value?.department
+  if (!department) return
+
+  try {
+    // 与部门页取同一份成员列表来定位序号，图标才能和卡片一致；失败就退回按名字哈希
+    const peers = await fetchAgents({ department, isPreset: true })
+    agentRank.value = departmentRanks(peers).get(agent.value?.id ?? '')
+  } catch {
+    // 图标序号拿不到不影响对话
   }
 }
 
@@ -219,7 +240,10 @@ onBeforeUnmount(() => {
 
       <div class="chat-layout">
         <aside class="conv-panel">
-          <button type="button" class="btn btn-primary new-chat" @click="newChat">＋ 新对话</button>
+          <button type="button" class="btn btn-primary new-chat" @click="newChat">
+            <span class="app-icon new-chat-icon"><Plus /></span>
+            新对话
+          </button>
 
           <div class="conv-list">
             <button
@@ -231,7 +255,9 @@ onBeforeUnmount(() => {
               @click="selectConversation(conversation)"
             >
               <span class="conv-title">{{ conversation.title || '新对话' }}</span>
-              <span class="conv-del" @click.stop="removeConversation(conversation)">✕</span>
+              <span class="conv-del app-icon" @click.stop="removeConversation(conversation)">
+                <Close />
+              </span>
             </button>
 
             <div v-if="conversations.length === 0" class="empty-text">暂无历史对话</div>
@@ -243,7 +269,9 @@ onBeforeUnmount(() => {
             <div v-if="loading" class="empty-state">加载中…</div>
 
             <div v-else-if="messages.length === 0 && agent" class="welcome">
-              <div class="welcome-logo">🤖</div>
+              <div class="welcome-logo icon-tile" :style="{ '--tone': welcomeTile.tone }">
+                <component :is="welcomeTile.icon" />
+              </div>
               <h2>{{ agent.name }}</h2>
               <p class="sub">{{ agent.description || '开始一段新的对话' }}</p>
 
@@ -330,6 +358,10 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
+.new-chat-icon {
+  font-size: 13px;
+}
+
 .conv-list {
   display: flex;
   flex: 1;
@@ -367,7 +399,7 @@ onBeforeUnmount(() => {
 }
 
 .conv-del {
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0;
 }
 
@@ -408,8 +440,11 @@ onBeforeUnmount(() => {
 }
 
 .welcome-logo {
-  margin-bottom: 10px;
-  font-size: 42px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  font-size: 30px;
 }
 
 .welcome h2 {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import { Close, VideoCamera } from '@element-plus/icons-vue'
+
 import {
   addKeyword,
   deleteKeyword,
@@ -129,7 +131,9 @@ onMounted(load)
               @click="selected = index"
             >
               <span>{{ keyword.keyword }}</span>
-              <span class="chip-close" @click.stop="remove(keyword)">✕</span>
+              <span class="chip-close app-icon" @click.stop="remove(keyword)">
+                <Close />
+              </span>
             </button>
             <span v-if="keywords.length === 0" class="faint">还没有关键词，先添加一个</span>
           </div>
@@ -183,7 +187,7 @@ onMounted(load)
           <div v-if="visibleVideos.length" class="video-grid">
             <article v-for="video in visibleVideos" :key="video.id" class="video-card card">
               <div class="cover">
-                <span class="cover-icon">🎬</span>
+                <span class="cover-icon app-icon"><VideoCamera /></span>
                 <span class="duration">{{ video.duration }}</span>
                 <span v-if="video.lowFansHighLikes" class="low-fans">低粉高赞</span>
               </div>
@@ -246,7 +250,7 @@ onMounted(load)
 }
 
 .chip-close {
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.65;
 }
 
@@ -317,7 +321,8 @@ onMounted(load)
   align-items: center;
   justify-content: center;
   height: 132px;
-  background: #252a3d;
+  background: linear-gradient(135deg, #eef1f7, #e3e9f3);
+  color: var(--text-dim);
 }
 
 .cover-icon {
@@ -343,7 +348,7 @@ onMounted(load)
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--warn);
-  color: #1f2233;
+  color: #fff;
   font-size: 11px;
   font-weight: 600;
 }
@@ -374,7 +379,7 @@ onMounted(load)
 }
 
 .likes {
-  color: #f43f5e;
+  color: var(--danger);
 }
 
 @media (max-width: 720px) {

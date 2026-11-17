@@ -1,20 +1,34 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { computed, onMounted, ref } from 'vue'
+
+import {
+  ArrowRight,
+  ChatDotRound,
+  Grid,
+  Lightning,
+  Monitor,
+} from '@element-plus/icons-vue'
 
 import { fetchAgents, fetchDepartments } from '../api/agents'
 import { fetchConversations } from '../api/conversations'
 import AgentCard from '../components/dashboard/AgentCard.vue'
 import AppHeader from '../components/dashboard/AppHeader.vue'
 import AppSidebar from '../components/dashboard/AppSidebar.vue'
+import { QUICK_ENTRIES, TONE, departmentRanks } from '../constants/nav'
 import { useAuthStore } from '../stores/auth'
 import type { Agent, Department } from '../types/agent'
 import type { Conversation } from '../types/chat'
 
-interface QuickLink {
+interface Stat {
   label: string
-  path: string
-  icon: string
+  value: number
+  unit: string
+  icon: Component
+  tone: string
 }
+
+const quickLinks = QUICK_ENTRIES
 
 const auth = useAuthStore()
 
@@ -25,24 +39,38 @@ const loading = ref(false)
 const error = ref('')
 
 const hotAgents = computed(() => agents.value.slice(0, 8))
-const stats = computed(() => [
-  { label: '智能体总数', value: agents.value.length, unit: '个', icon: '🤖' },
-  { label: '部门数', value: departments.value.length, unit: '个', icon: '🏢' },
-  { label: '积分余额', value: auth.balance?.tokenCredits ?? 0, unit: '', icon: '⚡' },
-  { label: '会话数', value: conversations.value.length, unit: '个', icon: '💬' },
+// 序号按完整列表算，切片展示不影响同一个智能体的图标
+const ranks = computed(() => departmentRanks(agents.value))
+const stats = computed<Stat[]>(() => [
+  {
+    label: '智能体总数',
+    value: agents.value.length,
+    unit: '个',
+    icon: Monitor,
+    tone: TONE.blue,
+  },
+  {
+    label: '部门数',
+    value: departments.value.length,
+    unit: '个',
+    icon: Grid,
+    tone: TONE.green,
+  },
+  {
+    label: '积分余额',
+    value: auth.balance?.tokenCredits ?? 0,
+    unit: '',
+    icon: Lightning,
+    tone: TONE.amber,
+  },
+  {
+    label: '会话数',
+    value: conversations.value.length,
+    unit: '个',
+    icon: ChatDotRound,
+    tone: TONE.red,
+  },
 ])
-
-const quickLinks: QuickLink[] = [
-  { label: '流量部门', path: '/traffic', icon: '📈' },
-  { label: '视频部门', path: '/video', icon: '🎬' },
-  { label: '文案编导组', path: '/copywriting', icon: '✍️' },
-  { label: '直播增长组', path: '/live', icon: '📊' },
-  { label: 'AI销售部门', path: '/sales', icon: '💰' },
-  { label: '职能成本部门', path: '/cost', icon: '🧾' },
-  { label: 'BOSS决策部门', path: '/boss', icon: '🏆' },
-  { label: '智能体中心', path: '/agent-center', icon: '🤖' },
-  { label: '灵感中心', path: '/inspiration', icon: '💡' },
-]
 
 async function load(): Promise<void> {
   loading.value = true
@@ -93,7 +121,9 @@ onMounted(() => {
 
         <section class="stat-grid">
           <div v-for="item in stats" :key="item.label" class="stat-card">
-            <span class="stat-icon">{{ item.icon }}</span>
+            <span class="stat-icon icon-tile" :style="{ '--tone': item.tone }">
+              <component :is="item.icon" />
+            </span>
             <div>
               <p class="stat-label">{{ item.label }}</p>
               <p class="stat-value">
@@ -108,11 +138,19 @@ onMounted(() => {
           <section class="panel">
             <header class="panel-head">
               <h2>常用智能体</h2>
-              <router-link to="/agent-center">全部 ›</router-link>
+              <router-link class="panel-more" to="/agent-center">
+                全部
+                <span class="app-icon more-icon"><ArrowRight /></span>
+              </router-link>
             </header>
 
             <div class="agent-grid">
-              <AgentCard v-for="agent in hotAgents" :key="agent.id" :agent="agent" />
+              <AgentCard
+                v-for="agent in hotAgents"
+                :key="agent.id"
+                :agent="agent"
+                :rank="ranks.get(agent.id)"
+              />
             </div>
 
             <div v-if="!loading && hotAgents.length === 0" class="empty-state">暂无智能体</div>
@@ -131,7 +169,7 @@ onMounted(() => {
                   class="quick-item"
                   :to="item.path"
                 >
-                  <span>{{ item.icon }}</span>
+                  <span class="app-icon quick-icon"><component :is="item.icon" /></span>
                   <span>{{ item.label }}</span>
                 </router-link>
               </div>
@@ -153,7 +191,7 @@ onMounted(() => {
   margin-bottom: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--panel);
+  background: var(--hero-gradient);
 }
 
 .hero-kicker {
@@ -172,6 +210,20 @@ onMounted(() => {
 .hero-desc {
   margin: 6px 0 0;
   color: var(--text-faint);
+  font-size: 13px;
+}
+
+.quick-icon {
+  font-size: 15px;
+}
+
+.panel-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.more-icon {
   font-size: 13px;
 }
 

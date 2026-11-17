@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { agentTile } from '../../constants/nav'
 import type { Agent } from '../../types/agent'
 
 const props = defineProps<{
   agent: Agent
+  /** 部门内序号（列表页用 departmentRanks() 算好传入），保证同部门图标不重样 */
+  rank?: number
 }>()
 
-const initial = computed(() => props.agent.name.slice(0, 1))
+const tile = computed(() =>
+  agentTile(props.agent.name, props.agent.department || '', props.rank),
+)
 </script>
 
 <template>
   <router-link class="agent-card card" :to="`/chat/${agent.id}`">
     <div class="agent-top">
-      <span class="agent-avatar">{{ initial }}</span>
+      <span class="agent-avatar icon-tile" :style="{ '--tone': tile.tone }">
+        <component :is="tile.icon" />
+      </span>
       <div class="agent-heading">
         <h3 class="agent-name">{{ agent.name }}</h3>
         <p v-if="agent.department" class="agent-dept">{{ agent.department }}</p>
@@ -41,7 +48,7 @@ const initial = computed(() => props.agent.name.slice(0, 1))
 
 .agent-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
 
@@ -53,17 +60,10 @@ const initial = computed(() => props.agent.name.slice(0, 1))
 }
 
 .agent-avatar {
-  display: inline-flex;
   flex: 0 0 42px;
-  align-items: center;
-  justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 10px;
-  background: rgba(16, 163, 127, 0.15);
-  color: var(--accent);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 20px;
 }
 
 .agent-heading {

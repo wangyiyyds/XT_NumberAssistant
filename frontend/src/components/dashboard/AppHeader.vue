@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 
+import { Bell, Lightning } from '@element-plus/icons-vue'
+
 import { useAuthStore } from '../../stores/auth'
 
 defineProps<{
@@ -26,8 +28,13 @@ onMounted(() => {
     <div class="header-title">{{ title || '先霆AI超级系统' }}</div>
 
     <div class="header-right">
-      <span class="balance" title="Token 积分余额">⚡ {{ credits }}</span>
-      <button type="button" class="icon-btn" title="通知">🔔</button>
+      <span class="balance" title="Token 积分余额">
+        <span class="app-icon balance-icon"><Lightning /></span>
+        {{ credits }}
+      </span>
+      <button type="button" class="icon-btn" title="通知">
+        <span class="app-icon"><Bell /></span>
+      </button>
       <div class="user-chip">
         <span class="avatar">{{ userInitial }}</span>
         <span class="user-name">你好，{{ auth.user?.name || '用户' }}</span>
@@ -63,13 +70,22 @@ onMounted(() => {
 }
 
 .balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;
 }
 
+.balance-icon {
+  color: var(--warn);
+  font-size: 16px;
+}
+
 .icon-btn {
-  font-size: 14px;
+  color: var(--text-dim);
+  font-size: 17px;
   opacity: 0.8;
 }
 
