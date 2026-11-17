@@ -21,7 +21,7 @@ const agent = ref<Agent | null>(null)
 // 欢迎区图标要和智能体卡片一致，所以也要拿到该智能体在部门内的序号
 const agentRank = ref<number | undefined>(undefined)
 const welcomeTile = computed(() =>
-  agentTile(agent.value?.name ?? '', agent.value?.department || '', agentRank.value),
+  agentTile(agent.value?.name ?? '', agent.value?.department, agentRank.value),
 )
 const conversations = ref<Conversation[]>([])
 const currentConversationId = ref<string | null>(null)

@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'zf-auth-token'
+const TOKEN_KEY = 'xt-auth-token'
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)

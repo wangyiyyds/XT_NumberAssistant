@@ -1,14 +1,13 @@
 /**
- * 显示层品牌兜底：后端（预置数据 / 历史会话）仍可能返回「珠峰」文案，
+ * 显示层品牌兜底：后端（预置数据 / 历史会话）仍可能返回「先霆」文案，
  * 前端统一替换为「先霆」，保证界面只显示新品牌名。
- * 只匹配中文「珠峰」，不影响 brand: 'zhufeng'、test@zhufeng.cn 这类接口字段与账号。
+ * 只匹配中文「先霆」，不影响 brand: 'xianting'、test@xianting.cn 这类接口字段与账号。
  */
-const BRAND_FORMER = '珠峰'
 const BRAND_CURRENT = '先霆'
 
 /** 替换单个字符串中的旧品牌名。 */
 export function brandText(text: string): string {
-  return text.split(BRAND_FORMER).join(BRAND_CURRENT)
+  return text.split(BRAND_CURRENT).join(BRAND_CURRENT)
 }
 
 /**

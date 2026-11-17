@@ -17,7 +17,7 @@ function toUser(dto: UserDto): User {
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const data = await request<AuthResponseDto>('POST', '/api/auth/login', {
-    brand: 'zhufeng',
+    brand: 'xianting',
     email,
     password,
   })
@@ -30,7 +30,7 @@ export async function register(
   name: string,
 ): Promise<AuthResponse> {
   const data = await request<AuthResponseDto>('POST', '/api/auth/register', {
-    brand: 'zhufeng',
+    brand: 'xianting',
     email,
     password,
     name,

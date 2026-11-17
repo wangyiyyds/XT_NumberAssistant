@@ -98,6 +98,17 @@ export interface AgentTile {
   tone: string
 }
 
+/**
+ * 取图标只需要这几个字段。
+ * `department` 必须允许 null —— 后端 DTO 里部门就是 `string | null`，
+ * 写成 `department?: string` 会让所有 `Agent[]` 调用点报 TS2345。
+ */
+export interface AgentIconSource {
+  id: string
+  name: string
+  department?: string | null
+}
+
 const tile = (icon: Component, tone: string): AgentTile => ({ icon, tone })
 
 /**
@@ -172,9 +183,7 @@ const FALLBACK_AGENT_POOL: AgentTile[] = [
  * 列表页用「完整数据」（不是搜索后的）算一次，图标就能保证同部门不重样 ——
  * 纯哈希做不到这一点：5 个槽位放 3 个智能体照样撞（生日悖论）。
  */
-export function departmentRanks(
-  agents: Array<{ id: string; name: string; department?: string }>,
-): Map<string, number> {
+export function departmentRanks(agents: AgentIconSource[]): Map<string, number> {
   const groups = new Map<string, Array<{ id: string; name: string }>>()
 
   for (const agent of agents) {
@@ -198,14 +207,14 @@ export function departmentRanks(
  * 哈希用 FNV-1a 再加一轮雪崩，每步都要 >>> 0 保持无符号，
  * 否则取模可能得到负数下标、拿到 undefined 图标。
  */
-export function agentTile(name: string, department = '', rank?: number): AgentTile {
-  const pool = AGENT_ICON_POOLS[department] ?? FALLBACK_AGENT_POOL
+export function agentTile(name: string, department?: string | null, rank?: number): AgentTile {
+  const pool = (department && AGENT_ICON_POOLS[department]) || FALLBACK_AGENT_POOL
   if (rank !== undefined && rank >= 0) {
     return pool[rank % pool.length] as AgentTile
   }
 
   let hash = 0x811c9dc5
-  for (const ch of `${department}#${name}`) {
+  for (const ch of `${department ?? ''}#${name}`) {
     hash = Math.imul(hash ^ (ch.codePointAt(0) ?? 0), 0x01000193) >>> 0
   }
   hash = (hash ^ (hash >>> 5)) >>> 0

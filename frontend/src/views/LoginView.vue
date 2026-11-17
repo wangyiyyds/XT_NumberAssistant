@@ -88,7 +88,7 @@ async function submit(): Promise<void> {
         </button>
       </form>
 
-      <p class="hint faint">演示账号：test@zhufeng.cn / 123456</p>
+      <p class="hint faint">演示账号：test@xianting.cn / 123456</p>
     </div>
   </div>
 </template>

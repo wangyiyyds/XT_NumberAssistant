@@ -10,9 +10,7 @@ const props = defineProps<{
   rank?: number
 }>()
 
-const tile = computed(() =>
-  agentTile(props.agent.name, props.agent.department || '', props.rank),
-)
+const tile = computed(() => agentTile(props.agent.name, props.agent.department, props.rank))
 </script>
 
 <template>
