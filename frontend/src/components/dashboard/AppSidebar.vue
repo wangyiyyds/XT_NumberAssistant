@@ -19,6 +19,10 @@ function isActive(path: string): boolean {
   if (path === '/agent-center') {
     return route.path === '/agent-center' || route.path.startsWith('/chat')
   }
+  // 灵感中心已收进流量部门：进入 /inspiration 时保持「流量部门」高亮
+  if (path === '/traffic') {
+    return route.path === '/traffic' || route.path.startsWith('/inspiration')
+  }
   return route.path === path
 }
 

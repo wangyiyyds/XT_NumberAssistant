@@ -23,7 +23,6 @@ import {
   Money,
   Notebook,
   Odometer,
-  Opportunity,
   PieChart,
   Promotion,
   Reading,
@@ -87,7 +86,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: '职能成本部门', path: '/cost', icon: Folder, tone: TONE.indigo },
   { label: 'BOSS决策部门', path: '/boss', icon: Trophy, tone: TONE.yellow },
   { label: '智能体中心', path: '/agent-center', icon: Grid, tone: TONE.sky },
-  { label: '灵感中心', path: '/inspiration', icon: Opportunity, tone: TONE.pink },
 ]
 
 /** 首页快捷入口：除首页以外的全部导航项 */
