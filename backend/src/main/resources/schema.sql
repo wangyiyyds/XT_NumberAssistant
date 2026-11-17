@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS t_user (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     public_id       VARCHAR(64)  NOT NULL UNIQUE,
+    --   brand  默认值为xianting
     brand           VARCHAR(32)  NOT NULL DEFAULT 'xianting',
     email           VARCHAR(128) NOT NULL UNIQUE,
     password        VARCHAR(256) NOT NULL,
