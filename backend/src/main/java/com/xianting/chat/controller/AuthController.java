@@ -1,5 +1,6 @@
 package com.xianting.chat.controller;
 
+import com.xianting.chat.common.Result;
 import com.xianting.chat.common.UserContext;
 import com.xianting.chat.service.AuthService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,23 +21,23 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body) {
-        return authService.login(body.get("email"), body.get("password"));
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> body) {
+        return Result.ok(authService.login(body.get("email"), body.get("password")));
     }
 
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> body) {
-        return authService.register(body.get("email"), body.get("password"),
-                body.getOrDefault("name", "新用户"), body.getOrDefault("brand", "xianting"));
+    public Result<Map<String, Object>> register(@RequestBody Map<String, String> body) {
+        return Result.ok(authService.register(body.get("email"), body.get("password"),
+                body.getOrDefault("name", "新用户"), body.getOrDefault("brand", "xianting")));
     }
 
     @PostMapping("/refresh")
-    public Map<String, Object> refresh() {
-        return authService.refresh(UserContext.require());
+    public Result<Map<String, Object>> refresh() {
+        return Result.ok(authService.refresh(UserContext.require()));
     }
 
     @PostMapping("/logout")
-    public Map<String, Object> logout() {
-        return Map.of("success", true);
+    public Result<Void> logout() {
+        return Result.ok(null);
     }
 }

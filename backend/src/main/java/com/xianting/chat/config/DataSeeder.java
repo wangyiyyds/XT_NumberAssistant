@@ -38,6 +38,7 @@ public class DataSeeder implements CommandLineRunner {
         this.videoRepository = videoRepository;
     }
 
+    // v
     @Override
     public void run(String... args) {
         if (departmentRepository.count() == 0) {

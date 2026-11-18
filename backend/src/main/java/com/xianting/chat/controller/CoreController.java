@@ -1,5 +1,6 @@
 package com.xianting.chat.controller;
 
+import com.xianting.chat.common.Result;
 import com.xianting.chat.common.UserContext;
 import com.xianting.chat.dto.BalanceDto;
 import com.xianting.chat.dto.UserDto;
@@ -24,13 +25,14 @@ public class CoreController {
         this.balanceService = balanceService;
     }
 
+    /** 基础设施探针：不套业务 Result 外壳 */
     @GetMapping("/health")
     public Map<String, Object> health() {
         return Map.of("status", "ok");
     }
 
     @GetMapping("/api/config")
-    public Map<String, Object> config() {
+    public Result<Map<String, Object>> config() {
         Map<String, Object> m = new HashMap<>();
         m.put("appTitle", "先t霆AI超级系统");
         m.put("registrationEnabled", true);
@@ -39,50 +41,50 @@ public class CoreController {
         m.put("ldap", Map.of("enabled", false));
         m.put("balance", Map.of("enabled", true, "autoRefillEnabled", true, "startBalance", 100000));
         m.put("conversationImportMaxFileSize", "20mb");
-        return m;
+        return Result.ok(m);
     }
 
     @GetMapping("/api/user")
-    public UserDto user() {
-        return userService.getUser(UserContext.require());
+    public Result<UserDto> user() {
+        return Result.ok(userService.getUser(UserContext.require()));
     }
 
     @GetMapping("/api/balance")
-    public BalanceDto balance() {
-        return balanceService.getBalance(UserContext.require());
+    public Result<BalanceDto> balance() {
+        return Result.ok(balanceService.getBalance(UserContext.require()));
     }
 
     @GetMapping("/api/notifications")
-    public Map<String, Object> notifications() {
-        return Map.of("items", List.of(), "total", 0, "preferences", Map.of("muted", false));
+    public Result<Map<String, Object>> notifications() {
+        return Result.ok(Map.of("items", List.of(), "total", 0, "preferences", Map.of("muted", false)));
     }
 
     @GetMapping("/api/roles/user")
-    public Map<String, Object> roles() {
-        return Map.of("role", "USER", "name", "User",
-                "permissions", Map.of("AGENTS", Map.of("CREATE", true, "SHARE", false, "SHARE_PUBLIC", false)));
+    public Result<Map<String, Object>> roles() {
+        return Result.ok(Map.of("role", "USER", "name", "User",
+                "permissions", Map.of("AGENTS", Map.of("CREATE", true, "SHARE", false, "SHARE_PUBLIC", false))));
     }
 
     @GetMapping("/api/models")
-    public Map<String, Object> models() {
-        return Map.of(
+    public Result<Map<String, Object>> models() {
+        return Result.ok(Map.of(
                 "agents", List.of("先霆默认模型"),
                 "DeepSeek", List.of("deepseek-chat", "deepseek-reasoner")
-        );
+        ));
     }
 
     @GetMapping("/api/search/enable")
-    public boolean searchEnabled() {
-        return false;
+    public Result<Boolean> searchEnabled() {
+        return Result.ok(false);
     }
 
     @GetMapping("/api/endpoints")
-    public Map<String, Object> endpoints() {
-        return Map.of("agents", true);
+    public Result<Map<String, Object>> endpoints() {
+        return Result.ok(Map.of("agents", true));
     }
 
     @GetMapping("/api/banner")
-    public Map<String, Object> banner() {
-        return Map.of("show", false);
+    public Result<Map<String, Object>> banner() {
+        return Result.ok(Map.of("show", false));
     }
 }

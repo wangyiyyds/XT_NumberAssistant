@@ -4,20 +4,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Map;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<Map<String, Object>> handleApi(ApiException e) {
+    public ResponseEntity<Result<Void>> handleApi(ApiException e) {
         return ResponseEntity.status(e.getStatus())
-                .body(Map.of("code", e.getStatus(), "message", e.getMessage()));
+                .body(Result.fail(e.getStatus(), e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleOther(Exception e) {
+    public ResponseEntity<Result<Void>> handleOther(Exception e) {
         return ResponseEntity.status(500)
-                .body(Map.of("code", 500, "message", e.getMessage() == null ? "internal error" : e.getMessage()));
+                .body(Result.fail(500, e.getMessage() == null ? "internal error" : e.getMessage()));
     }
 }

@@ -1,5 +1,6 @@
 package com.xianting.chat.controller;
 
+import com.xianting.chat.common.Result;
 import com.xianting.chat.common.UserContext;
 import com.xianting.chat.dto.InspirationKeywordDto;
 import com.xianting.chat.service.InspirationService;
@@ -24,23 +25,23 @@ public class InspirationController {
     }
 
     @GetMapping
-    public Map<String, Object> inspiration() {
-        return inspirationService.list(UserContext.require());
+    public Result<Map<String, Object>> inspiration() {
+        return Result.ok(inspirationService.list(UserContext.require()));
     }
 
     @PostMapping("/keywords")
-    public InspirationKeywordDto addKeyword(@RequestBody Map<String, String> body) {
-        return inspirationService.addKeyword(UserContext.require(), body.get("keyword"));
+    public Result<InspirationKeywordDto> addKeyword(@RequestBody Map<String, String> body) {
+        return Result.ok(inspirationService.addKeyword(UserContext.require(), body.get("keyword")));
     }
 
     @DeleteMapping("/keywords/{id}")
-    public Map<String, Object> deleteKeyword(@PathVariable Long id) {
-        return inspirationService.deleteKeyword(UserContext.require(), id);
+    public Result<Map<String, Object>> deleteKeyword(@PathVariable Long id) {
+        return Result.ok(inspirationService.deleteKeyword(UserContext.require(), id));
     }
 
     /** Manual refresh: costs credits, bumps the cache window (videos come from the seeded pool). */
     @PostMapping("/keywords/{id}/refresh")
-    public InspirationKeywordDto refresh(@PathVariable Long id) {
-        return inspirationService.refresh(UserContext.require(), id);
+    public Result<InspirationKeywordDto> refresh(@PathVariable Long id) {
+        return Result.ok(inspirationService.refresh(UserContext.require(), id));
     }
 }

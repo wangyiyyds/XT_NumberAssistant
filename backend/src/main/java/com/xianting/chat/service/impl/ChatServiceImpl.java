@@ -42,7 +42,12 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationConverter conversationConverter;
     private final MessageConverter messageConverter;
     private final ObjectMapper objectMapper;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    // 守护线程：JVM 关闭时不会被卡住的流式请求拖住不退，避免端口残留占用
+    private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    });
 
     public ChatServiceImpl(AgentService agentService,
                            ConversationRepository conversationRepository,

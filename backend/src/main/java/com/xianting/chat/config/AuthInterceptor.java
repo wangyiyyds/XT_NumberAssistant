@@ -1,5 +1,7 @@
 package com.xianting.chat.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xianting.chat.common.Result;
 import com.xianting.chat.common.TokenUtil;
 import com.xianting.chat.common.UserContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,12 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Value("${app.jwt.secret}")
     private String secret;
 
+    private final ObjectMapper objectMapper;
+
+    public AuthInterceptor(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
@@ -25,7 +33,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (userId == null) {
             response.setStatus(401);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":401,\"message\":\"invalid or expired token\"}");
+            response.getWriter().write(
+                    objectMapper.writeValueAsString(Result.fail(401, "invalid or expired token")));
             return false;
         }
         UserContext.set(userId);

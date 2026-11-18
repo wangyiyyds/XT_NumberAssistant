@@ -1,5 +1,6 @@
 package com.xianting.chat.controller;
 
+import com.xianting.chat.common.Result;
 import com.xianting.chat.common.UserContext;
 import com.xianting.chat.dto.ConversationDto;
 import com.xianting.chat.dto.MessageDto;
@@ -27,22 +28,22 @@ public class ConversationController {
     }
 
     @GetMapping
-    public Map<String, Object> list(@RequestParam(name = "agent_id", required = false) String agentPublicId) {
-        return conversationService.list(UserContext.require(), agentPublicId);
+    public Result<Map<String, Object>> list(@RequestParam(name = "agent_id", required = false) String agentPublicId) {
+        return Result.ok(conversationService.list(UserContext.require(), agentPublicId));
     }
 
     @GetMapping("/{publicId}/messages")
-    public List<MessageDto> messages(@PathVariable String publicId) {
-        return conversationService.messages(UserContext.require(), publicId);
+    public Result<List<MessageDto>> messages(@PathVariable String publicId) {
+        return Result.ok(conversationService.messages(UserContext.require(), publicId));
     }
 
     @PatchMapping("/{publicId}")
-    public ConversationDto rename(@PathVariable String publicId, @RequestBody Map<String, String> body) {
-        return conversationService.rename(UserContext.require(), publicId, body.get("title"));
+    public Result<ConversationDto> rename(@PathVariable String publicId, @RequestBody Map<String, String> body) {
+        return Result.ok(conversationService.rename(UserContext.require(), publicId, body.get("title")));
     }
 
     @DeleteMapping("/{publicId}")
-    public Map<String, Object> delete(@PathVariable String publicId) {
-        return conversationService.delete(UserContext.require(), publicId);
+    public Result<Map<String, Object>> delete(@PathVariable String publicId) {
+        return Result.ok(conversationService.delete(UserContext.require(), publicId));
     }
 }

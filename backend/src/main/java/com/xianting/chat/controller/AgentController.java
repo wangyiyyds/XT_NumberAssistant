@@ -1,5 +1,6 @@
 package com.xianting.chat.controller;
 
+import com.xianting.chat.common.Result;
 import com.xianting.chat.dto.AgentDto;
 import com.xianting.chat.dto.DepartmentDto;
 import com.xianting.chat.service.AgentService;
@@ -21,30 +22,30 @@ public class AgentController {
     }
 
     @GetMapping("/api/departments")
-    public List<DepartmentDto> departments() {
-        return agentService.listDepartments();
+    public Result<List<DepartmentDto>> departments() {
+        return Result.ok(agentService.listDepartments());
     }
 
     /** OpenAI-style paginated list, like the observed target API. */
     @GetMapping("/api/agents")
-    public Map<String, Object> agents(@RequestParam(required = false) String department,
-                                      @RequestParam(required = false) String isPreset,
-                                      @RequestParam(required = false) String requiredPermission) {
-        return agentService.listAgents(department, isPreset);
+    public Result<Map<String, Object>> agents(@RequestParam(required = false) String department,
+                                              @RequestParam(required = false) String isPreset,
+                                              @RequestParam(required = false) String requiredPermission) {
+        return Result.ok(agentService.listAgents(department, isPreset));
     }
 
     @GetMapping("/api/agents/my-access")
-    public Map<String, Object> myAccess() {
-        return agentService.myAccess();
+    public Result<Map<String, Object>> myAccess() {
+        return Result.ok(agentService.myAccess());
     }
 
     @GetMapping("/api/agents/chat/active")
-    public List<Map<String, Object>> chatActive() {
-        return List.of();
+    public Result<List<Map<String, Object>>> chatActive() {
+        return Result.ok(List.of());
     }
 
     @GetMapping("/api/agents/{publicId}")
-    public AgentDto agentDetail(@PathVariable String publicId) {
-        return agentService.detail(publicId);
+    public Result<AgentDto> agentDetail(@PathVariable String publicId) {
+        return Result.ok(agentService.detail(publicId));
     }
 }

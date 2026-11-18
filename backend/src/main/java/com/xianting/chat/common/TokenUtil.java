@@ -28,6 +28,7 @@ public final class TokenUtil {
         String[] parts = token.split("\\.");
         if (parts.length != 2) return null;
         try {
+            //  验签解码
             String payload = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
             byte[] sig = Base64.getUrlDecoder().decode(parts[1]);
             if (!java.security.MessageDigest.isEqual(sig, hmac(payload, secret))) return null;
