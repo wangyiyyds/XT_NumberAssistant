@@ -31,6 +31,6 @@ app:
 # swagger-ui 路径（是否启用由 profile 控制）
 springdoc:
   swagger-ui:
-    path: /swagger-ui.htm
+    path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
