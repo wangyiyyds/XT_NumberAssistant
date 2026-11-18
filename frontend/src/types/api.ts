@@ -3,6 +3,14 @@ export interface ApiErrorBody {
   message?: string
 }
 
+/** 后端统一响应外壳 Result<T> */
+export interface ApiEnvelope<T> {
+  code: number
+  message: string
+  data: T
+  timestamp?: string
+}
+
 export interface PageResult<T> {
   object: string
   data: T[]

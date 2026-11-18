@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { AxiosError } from 'axios'
 
-import type { ApiErrorBody } from '../types/api'
+import type { ApiEnvelope, ApiErrorBody } from '../types/api'
 import { brandData, brandText } from './brand'
 import { clearToken, getToken } from './storage'
 
@@ -51,11 +51,17 @@ export async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const response = await http.request<T>({
+  const response = await http.request<ApiEnvelope<T>>({
     method,
     url: path,
     data: body,
   })
+  // 统一解包 {code, message, data} 外壳：业务码非 200 视为失败，
+  // 解出的 data 与改造前 response.data 完全同形，下游调用方无感
+  const envelope = response.data
+  if (envelope?.code !== 200) {
+    throw new ApiError(envelope?.message || '请求失败', envelope?.code ?? response.status)
+  }
   // 显示层品牌兜底：接口数据里的旧品牌名统一换成新品牌名
-  return brandData(response.data)
+  return brandData(envelope.data)
 }
