@@ -20,10 +20,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 /**
  * SSE 流式对话：事件 "conversation"（新会话）、"message"（文本块）、
@@ -84,8 +86,11 @@ public class ChatServiceImpl implements ChatService {
                 runChat(emitter, userId, agent, text, conversationPublicId, clientMessageId, parentMessageId);
             } catch (Exception e) {
                 try {
+                    // 用 objectMapper 序列化，模型异常文本里的引号/换行不会拼出非法 JSON
                     emitter.send(SseEmitter.event().name("error")
-                            .data("{\"message\":\"" + escape(e.getMessage()) + "\"}", MediaType.APPLICATION_JSON));
+                            .data(objectMapper.writeValueAsString(Map.of(
+                                    "message", e.getMessage() == null ? "internal error" : e.getMessage())),
+                                    MediaType.APPLICATION_JSON));
                 } catch (Exception ignored) {
                 }
                 emitter.complete();
@@ -133,20 +138,32 @@ public class ChatServiceImpl implements ChatService {
                     .data(objectMapper.writeValueAsString(conv), MediaType.APPLICATION_JSON));
         }
 
-        String reply = aiService.generateReply(agent, text);
+        // 同会话历史（本次用户消息已先落库，按 publicId 排除）
+        List<Message> history = messageRepository.listByConversationId(conversation.getId()).stream()
+                .filter(m -> !m.getPublicId().equals(userMessageId))
+                .toList();
+
         String assistantMessageId = UUID.randomUUID().toString();
-        for (int i = 0; i < reply.length(); ) {
-            int end = Math.min(reply.length(), i + 6);
-            String chunk = reply.substring(i, end);
-            i = end;
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("messageId", assistantMessageId);
-            m.put("conversationId", conversation.getPublicId());
-            m.put("text", chunk);
-            emitter.send(SseEmitter.event().name("message")
-                    .data(objectMapper.writeValueAsString(m), MediaType.APPLICATION_JSON));
-            Thread.sleep(35);
+        StringBuilder full = new StringBuilder();
+        // 真流式：在守护 worker 线程上阻塞消费模型片段，逐段转发 message 事件；
+        // 客户端断开时 send 抛异常 -> try-with-resources 关流并取消上游订阅
+        try (Stream<String> chunks = aiService.streamReply(agent, text, history).toStream()) {
+            var it = chunks.iterator();
+            while (it.hasNext()) {
+                String chunk = it.next();
+                if (chunk.isEmpty()) {
+                    continue;
+                }
+                full.append(chunk);
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("messageId", assistantMessageId);
+                m.put("conversationId", conversation.getPublicId());
+                m.put("text", chunk);
+                emitter.send(SseEmitter.event().name("message")
+                        .data(objectMapper.writeValueAsString(m), MediaType.APPLICATION_JSON));
+            }
         }
+        String reply = full.toString();
 
         Message assistantMsg = new Message();
         assistantMsg.setPublicId(assistantMessageId);
@@ -170,9 +187,5 @@ public class ChatServiceImpl implements ChatService {
 
     private static String str(Object o) {
         return o == null ? null : String.valueOf(o);
-    }
-
-    private static String escape(String s) {
-        return s == null ? "internal error" : s.replace("\"", "'");
     }
 }
