@@ -3,19 +3,30 @@
 *.iml
 .vscode/
 
-# Java 构建产物
-backend/target/
-*.class
-*.jar
-*.war
-
-# H2 本地数据
-backend/data/
-
 # OS
 .DS_Store
 Thumbs.db
 *.log
 
-backend/.workbuddy
-backend/docs
+# 工作区临时目录
+.workbuddy/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# 本地环境变量（保留示例）
+.env
+.env.*
+!.env.example

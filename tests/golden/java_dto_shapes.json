@@ -1,0 +1,16 @@
+{
+  "_source": "Java DTO 定义（backend/src/main/java/com/xianting/chat/dto/*.java，本次迁移前已读取）。本机 Java 14 低于 Spring Boot 3 要求、无 Maven、MySQL 未运行，无法启动 Java 版抓取真实响应；按测试计划约定，golden snapshot 以 Java DTO 字段定义为准。",
+  "envelope": ["code", "message", "data", "timestamp"],
+  "page_result": ["object", "data", "first_id", "last_id", "has_more", "after"],
+  "auth_response": ["token", "user"],
+  "dto": {
+    "UserDto": ["_id", "brand", "email", "name", "avatar", "emailVerified", "disabled", "contractReadAt", "createdAt"],
+    "AgentDto": ["_id", "agent_id", "name", "description", "avatar", "category", "department", "isPreset", "conversation_starters", "instructions", "createdAt"],
+    "BalanceDto": ["tokenCredits", "autoRefillEnabled", "expireAt", "user"],
+    "ConversationDto": ["_id", "conversationId", "title", "endpoint", "createdAt", "updatedAt", "agent_id"],
+    "DepartmentDto": ["_id", "name", "enabled", "brandOnly", "sortOrder", "extraTools", "__v"],
+    "MessageDto": ["_id", "messageId", "conversationId", "parentMessageId", "sender", "isCreatedByUser", "text", "error", "createdAt"],
+    "InspirationKeywordDto": ["_id", "keyword", "order", "cacheExpiresAt", "videos"],
+    "InspirationVideoDto": ["_id", "author", "fans", "duration", "publishDate", "title", "likes", "coverUrl", "videoUrl", "lowFansHighLikes"]
+  }
+}
