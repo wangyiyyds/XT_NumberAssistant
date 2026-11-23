@@ -16,3 +16,6 @@ backend/data/
 .DS_Store
 Thumbs.db
 *.log
+
+backend/.workbuddy
+backend/docs
