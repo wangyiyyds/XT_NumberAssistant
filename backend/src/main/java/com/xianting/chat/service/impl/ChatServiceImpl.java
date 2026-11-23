@@ -102,9 +102,11 @@ public class ChatServiceImpl implements ChatService {
                          String conversationPublicId, String clientMessageId, String parentMessageId) throws Exception {
         Conversation conversation = null;
         boolean isNew = false;
+        //如果有历史会话就读取
         if (conversationPublicId != null) {
             conversation = conversationRepository.findByPublicIdAndUserId(conversationPublicId, userId);
         }
+        //没有历史会话则新建会话
         if (conversation == null) {
             conversation = new Conversation();
             conversation.setPublicId(UUID.randomUUID().toString());
@@ -117,9 +119,10 @@ public class ChatServiceImpl implements ChatService {
             conversationRepository.save(conversation);
             isNew = true;
         }
-
+        //当前用户系统余额是否充足
         balanceService.deduct(userId, COST_PER_MESSAGE);
 
+        //构建用户消息对象
         String userMessageId = clientMessageId != null ? clientMessageId : UUID.randomUUID().toString();
         Message userMsg = new Message();
         userMsg.setPublicId(userMessageId);
@@ -131,6 +134,7 @@ public class ChatServiceImpl implements ChatService {
         userMsg.setCreatedAt(LocalDateTime.now());
         messageRepository.save(userMsg);
 
+        //新会话 需要和前端建立sse连接
         if (isNew) {
             ConversationDto conv = conversationConverter.toDto(conversation);
             conv.setAgentId(agent.getPublicId());
@@ -159,12 +163,14 @@ public class ChatServiceImpl implements ChatService {
                 m.put("messageId", assistantMessageId);
                 m.put("conversationId", conversation.getPublicId());
                 m.put("text", chunk);
+                //把每一个chunk 通过emitter的message事件发送给VUE前端
                 emitter.send(SseEmitter.event().name("message")
                         .data(objectMapper.writeValueAsString(m), MediaType.APPLICATION_JSON));
             }
         }
         String reply = full.toString();
 
+        //把AI响应的消息存起来 会话历史存储
         Message assistantMsg = new Message();
         assistantMsg.setPublicId(assistantMessageId);
         assistantMsg.setConversationId(conversation.getId());
@@ -178,6 +184,7 @@ public class ChatServiceImpl implements ChatService {
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.updateById(conversation);
 
+        //本次流式响应结束 final连接可以断开
         emitter.send(SseEmitter.event().name("final")
                 .data(objectMapper.writeValueAsString(
                         messageConverter.toDto(assistantMsg, conversation.getPublicId())),
