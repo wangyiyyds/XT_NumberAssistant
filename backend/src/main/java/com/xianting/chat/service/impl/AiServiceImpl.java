@@ -5,6 +5,8 @@ import com.xianting.chat.entity.Message;
 import com.xianting.chat.entity.Prompt;
 import com.xianting.chat.repository.PromptRepository;
 import com.xianting.chat.service.AiService;
+import com.xianting.chat.service.TranscriptCorrectionService;
+import com.xianting.chat.service.VideoCopywritingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -15,6 +17,9 @@ import reactor.core.publisher.Flux;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * AiService 默认实现：人设优先取该 Agent 在 t_prompt 的 ACTIVE 版本 content，
@@ -28,17 +33,32 @@ public class AiServiceImpl implements AiService {
 
     /** 带进 prompt 的历史消息条上限，约 5 轮对话 */
     private static final int HISTORY_WINDOW = 10;
+    private static final Set<String> VIDEO_COPYWRITING_ASSISTANTS = Set.of("文案提取助手", "文件提取助手");
+    private static final Pattern VIDEO_URL = Pattern.compile("https?://[^\\s<>\\\"']+");
 
     private final ChatClient chatClient;
-    private final PromptRepository promptRepository;
 
-    public AiServiceImpl(ChatClient.Builder builder, PromptRepository promptRepository) {
+    private final PromptRepository promptRepository;
+    private final VideoCopywritingService videoCopywritingService;
+    private final TranscriptCorrectionService transcriptCorrectionService;
+
+    public AiServiceImpl(ChatClient.Builder builder, PromptRepository promptRepository,
+                         VideoCopywritingService videoCopywritingService,
+                         TranscriptCorrectionService transcriptCorrectionService) {
         this.chatClient = builder.build();
         this.promptRepository = promptRepository;
+        this.videoCopywritingService = videoCopywritingService;
+        this.transcriptCorrectionService = transcriptCorrectionService;
     }
 
     @Override
     public Flux<String> streamReply(Agent agent, String userText, List<Message> history) {
+        String videoUrl = findVideoUrl(agent, userText);
+        if (videoUrl != null) {
+            return Flux.defer(() -> Flux.just(transcriptCorrectionService.correct(
+                    videoCopywritingService.extract(videoUrl))));
+        }
+
         Prompt active = promptRepository.findActiveByAgentId(agent.getId());
         String system;
         if (active != null && StringUtils.hasText(active.getContent())) {
@@ -68,5 +88,11 @@ public class AiServiceImpl implements AiService {
                 .user(userText)
                 .stream()
                 .content();
+    }
+
+    private static String findVideoUrl(Agent agent, String userText) {
+        if (!VIDEO_COPYWRITING_ASSISTANTS.contains(agent.getName())) return null;
+        Matcher matcher = VIDEO_URL.matcher(userText.replace("\\://", "://"));
+        return matcher.find() ? matcher.group() : null;
     }
 }
