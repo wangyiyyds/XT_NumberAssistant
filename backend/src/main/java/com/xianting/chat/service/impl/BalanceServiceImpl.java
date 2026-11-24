@@ -32,22 +32,11 @@ public class BalanceServiceImpl implements BalanceService {
     }
 
     @Override
-    public void deduct(Long userId, long cost) {
-        Balance balance = balanceRepository.findByUserId(userId);
-        if (balance == null) return;
-        long credits = balance.getTokenCredits() == null ? 0 : balance.getTokenCredits();
-        balance.setTokenCredits(Math.max(0, credits - cost));
-        balanceRepository.updateById(balance);
-    }
-
-    @Override
     public void deductOrThrow(Long userId, long cost) {
-        Balance balance = balanceRepository.findByUserId(userId);
-        long credits = balance == null || balance.getTokenCredits() == null ? 0 : balance.getTokenCredits();
-        if (credits < cost) {
-            throw new ApiException(402, "积分不足，刷新需要" + cost + "积分");
+        // 一条原子 UPDATE 完成「判断 + 扣减」，影响行数为 0 说明余额不足。
+        // 不再采用旧的"先查出余额、内存里减、再写回"三步走——那种写法并发下会丢失更新。
+        if (balanceRepository.deductIfEnough(userId, cost) == 0) {
+            throw new ApiException(402, "积分不足，需要" + cost + "积分");
         }
-        balance.setTokenCredits(credits - cost);
-        balanceRepository.updateById(balance);
     }
 }

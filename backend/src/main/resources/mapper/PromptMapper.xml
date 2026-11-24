@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xianting.chat.mapper.PromptMapper">
+
+    <resultMap id="BaseResultMap" type="com.xianting.chat.entity.Prompt">
+        <id     column="id"               property="id"/>
+        <result column="public_id"        property="publicId"/>
+        <result column="agent_id"         property="agentId"/>
+        <result column="version"          property="version"/>
+        <result column="version_tag"      property="versionTag"/>
+        <result column="name"             property="name"/>
+        <result column="description"      property="description"/>
+        <result column="prompt_type"      property="promptType"/>
+        <result column="content"          property="content"/>
+        <result column="variables"        property="variables"/>
+        <result column="model_config"     property="modelConfig"/>
+        <result column="status"           property="status"/>
+        <result column="parent_prompt_id" property="parentPromptId"/>
+        <result column="created_by"       property="createdBy"/>
+        <result column="updated_by"       property="updatedBy"/>
+        <result column="created_at"       property="createdAt"/>
+        <result column="updated_at"       property="updatedAt"/>
+        <result column="published_at"     property="publishedAt"/>
+        <result column="archived_at"      property="archivedAt"/>
+    </resultMap>
+
+</mapper>

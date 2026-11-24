@@ -41,7 +41,9 @@ CREATE TABLE IF NOT EXISTS t_agent (
     is_preset             BOOLEAN NOT NULL DEFAULT TRUE,
     conversation_starters VARCHAR(2048),
     instructions          TEXT,
-    created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    milvus_collection     VARCHAR(255),
+    created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_milvus_collection (milvus_collection)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS t_conversation (
@@ -92,3 +94,36 @@ CREATE TABLE IF NOT EXISTS t_inspiration_video (
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_video_keyword (keyword_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--  新建t_prompt表，每个智能体都有专属的prompt(可更新每个智能体的prompt版本)
+CREATE TABLE IF NOT EXISTS `t_prompt`  (
+                             `id` bigint NOT NULL AUTO_INCREMENT,
+                             `public_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+                             `agent_id` bigint NOT NULL,
+                             `version` int NOT NULL,
+                             `version_tag` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+                             `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+                             `description` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+                             `prompt_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'SYSTEM',
+                             `content` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+                             `variables` json NULL,
+                             `model_config` json NULL,
+                             `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'DRAFT',
+                             `parent_prompt_id` bigint NULL DEFAULT NULL,
+                             `created_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+                             `updated_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+                             `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                             `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             `published_at` timestamp NULL DEFAULT NULL,
+                             `archived_at` timestamp NULL DEFAULT NULL,
+                             `active_agent_id` bigint GENERATED ALWAYS AS ((case when (`status` = _utf8mb4'ACTIVE') then `agent_id` else NULL end)) VIRTUAL NULL,
+                             PRIMARY KEY (`id`) USING BTREE,
+                             UNIQUE INDEX `uk_public_id`(`public_id` ASC) USING BTREE,
+                             UNIQUE INDEX `uk_agent_version`(`agent_id` ASC, `version` ASC) USING BTREE,
+                             UNIQUE INDEX `uk_agent_active`(`active_agent_id` ASC) USING BTREE,
+                             INDEX `idx_agent_status`(`agent_id` ASC, `status` ASC) USING BTREE,
+                             INDEX `idx_agent_created`(`agent_id` ASC, `created_at` ASC) USING BTREE,
+                             INDEX `idx_parent`(`parent_prompt_id` ASC) USING BTREE,
+                             CONSTRAINT `fk_prompt_agent` FOREIGN KEY (`agent_id`) REFERENCES `t_agent` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+                             CONSTRAINT `fk_prompt_parent` FOREIGN KEY (`parent_prompt_id`) REFERENCES `t_prompt` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1030 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'Agent Prompt 版本管理表' ROW_FORMAT = Dynamic;

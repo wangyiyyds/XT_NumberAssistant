@@ -17,4 +17,9 @@ public class BalanceRepositoryImpl extends CrudRepository<BalanceMapper, Balance
         return getBaseMapper().selectOne(qw);
     }
 
+    @Override
+    public int deductIfEnough(Long userId, long cost) {
+        return getBaseMapper().deductIfEnough(userId, cost);
+    }
+
 }
