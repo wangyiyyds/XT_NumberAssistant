@@ -29,7 +29,7 @@ public class ChatController {
     @PostMapping(value = "/agents", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody Map<String, Object> body) {
         Long userId = UserContext.require();
-        SseEmitter emitter = new SseEmitter(120_000L);
+        SseEmitter emitter = new SseEmitter(900_000L);
         chatService.streamChat(emitter, userId, body);
         return emitter;
     }

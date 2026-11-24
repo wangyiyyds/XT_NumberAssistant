@@ -110,7 +110,7 @@ public class DataSeeder implements CommandLineRunner {
         List<D> departments = List.of(
                 new D("流量部门", "爆款选题助手", "标题优化大师", "热点追踪员"),
                 new D("视频部门", "AI漫剧编剧", "分镜生成师", "视频剪辑顾问"),
-                new D("文案编导组", "短视频脚本专家", "带货文案写手", "口播稿优化师"),
+                new D("文案编导组", "短视频脚本专家", "带货文案写手", "口播稿优化师", "文案提取助手"),
                 new D("直播增长组", "直播话术教练", "直播间策划师"),
                 new D("AI销售部门", "客户跟进助手", "成交话术专家", "私域运营顾问"),
                 new D("职能成本部门", "合同审查助手", "财务分析助理", "HR面试助手"),
@@ -152,11 +152,17 @@ public class DataSeeder implements CommandLineRunner {
         agent.setPublicId(UUID.randomUUID().toString());
         agent.setDepartmentId(dept.getId());
         agent.setName(agentName);
-        agent.setDescription("我是" + deptName + "的" + agentName + "，可以帮你完成相关专业任务。");
+        boolean isCopywritingExtractor = "文案提取助手".equals(agentName);
+        agent.setDescription(isCopywritingExtractor
+                ? "粘贴视频链接，提取其中的口播与字幕文案。"
+                : "我是" + deptName + "的" + agentName + "，可以帮你完成相关专业任务。");
         agent.setCategory(category);
         agent.setIsPreset(true);
-        agent.setConversationStarters("[\"你好，请介绍一下你能做什么\",\"帮我出一个工作方案\",\"我遇到了一个问题，想请你分析\"]");
-        agent.setInstructions("你是「" + agentName + "」，隶属于" + deptName + "。请用专业、友好的中文回答用户问题。");
+        agent.setConversationStarters(isCopywritingExtractor ? "[]"
+                : "[\"你好，请介绍一下你能做什么\",\"帮我出一个工作方案\",\"我遇到了一个问题，想请你分析\"]");
+        agent.setInstructions(isCopywritingExtractor
+                ? "你是视频文案提取助手。用户发送视频链接时，系统会自动提取口播和字幕文案；未提供链接时，请提示用户直接粘贴公开视频链接。"
+                : "你是「" + agentName + "」，隶属于" + deptName + "。请用专业、友好的中文回答用户问题。");
         agent.setCreatedAt(LocalDateTime.now());
         agentRepository.save(agent);
     }
