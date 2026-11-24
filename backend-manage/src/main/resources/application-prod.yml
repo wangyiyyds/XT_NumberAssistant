@@ -1,0 +1,20 @@
+# 生产环境：全部通过环境变量注入，缺失则启动失败（无默认值）
+spring:
+  datasource:
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+  sql:
+    init:
+      # 生产不自动建表，schema-manage.sql 需 DBA 手动执行
+      mode: never
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}

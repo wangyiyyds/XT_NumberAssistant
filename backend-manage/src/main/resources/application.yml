@@ -1,0 +1,42 @@
+# 公共配置：只放与环境无关的内容，数据源/密钥/日志等在各环境 profile 文件中配置
+server:
+  port: 8081
+
+spring:
+  application:
+    name: xianting-manage
+  profiles:
+    # 默认开发环境，启动时可用 --spring.profiles.active=prod 覆盖
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+app:
+  jwt:
+    expire-hours: 168
+  balance:
+    start: 100000   # 管理端新增用户的初始积分，与客户端一致
+
+# swagger-ui 路径（是否启用由 profile 控制）
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.xianting.manage.mapper: debug   # 只有 Mapper，其余业务类不再 DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n"
