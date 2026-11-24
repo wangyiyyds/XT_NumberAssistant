@@ -80,6 +80,12 @@ const router = createRouter({
       meta: { title: '灵感中心' },
     },
     {
+      path: '/copywriting-extract/:agentId',
+      name: 'copywritingExtract',
+      component: () => import('../views/CopywritingExtractView.vue'),
+      meta: { title: '文案提取' },
+    },
+    {
       path: '/chat/:agentId',
       name: 'chat',
       component: () => import('../views/ChatView.vue'),

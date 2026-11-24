@@ -19,3 +19,9 @@ Thumbs.db
 
 backend/.workbuddy
 backend/docs
+transcription/.venv/
+transcription/models/
+transcription/__pycache__/
+transcription/.pip-cache/
+transcription/.yt-dlp-test/
+transcription/.yt-dlp-test-output/

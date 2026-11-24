@@ -23,6 +23,9 @@ function isActive(path: string): boolean {
   if (path === '/traffic') {
     return route.path === '/traffic' || route.path.startsWith('/inspiration')
   }
+  if (path === '/copywriting') {
+    return route.path === '/copywriting' || route.path.startsWith('/copywriting-extract')
+  }
   return route.path === path
 }
 

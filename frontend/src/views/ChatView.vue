@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { fetchAgent, fetchAgents } from '../api/agents'
 import { streamChat } from '../api/chat'
@@ -15,6 +15,7 @@ import type { Agent } from '../types/agent'
 import type { ChatMessage, Conversation } from '../types/chat'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const agent = ref<Agent | null>(null)
@@ -22,6 +23,14 @@ const agent = ref<Agent | null>(null)
 const agentRank = ref<number | undefined>(undefined)
 const welcomeTile = computed(() =>
   agentTile(agent.value?.name ?? '', agent.value?.department, agentRank.value),
+)
+const isVideoCopywritingAssistant = computed(() =>
+  ['文案提取助手', '文件提取助手'].includes(agent.value?.name ?? ''),
+)
+const inputPlaceholder = computed(() =>
+  isVideoCopywritingAssistant.value
+    ? '请直接粘贴视频链接（Enter 提取，Shift+Enter 换行）'
+    : '给智能体发消息…（Enter 发送，Shift+Enter 换行）',
 )
 const conversations = ref<Conversation[]>([])
 const currentConversationId = ref<string | null>(null)
@@ -55,6 +64,11 @@ async function loadAgent(): Promise<void> {
   error.value = ''
   try {
     agent.value = await fetchAgent(agentId.value)
+    // 文案提取使用独立的工作台；兼容用户收藏的旧对话链接。
+    if (agent.value.name === '文案提取助手') {
+      await router.replace(`/copywriting-extract/${agent.value.id}`)
+      return
+    }
     await Promise.all([loadConversations(), loadDepartmentRank()])
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : '加载智能体失败'
@@ -274,8 +288,11 @@ onBeforeUnmount(() => {
               </div>
               <h2>{{ agent.name }}</h2>
               <p class="sub">{{ agent.description || '开始一段新的对话' }}</p>
+              <p v-if="isVideoCopywritingAssistant" class="extract-hint">
+                请直接粘贴公开视频链接，我会识别视频语音并返回文案。
+              </p>
 
-              <div v-if="agent.starters.length" class="starters">
+              <div v-else-if="agent.starters.length" class="starters">
                 <button
                   v-for="(starter, index) in agent.starters"
                   :key="index"
@@ -313,7 +330,7 @@ onBeforeUnmount(() => {
               <textarea
                 v-model="input"
                 rows="1"
-                placeholder="给智能体发消息…（Enter 发送，Shift+Enter 换行）"
+                :placeholder="inputPlaceholder"
                 :disabled="sending"
                 @keydown="onKeydown"
               ></textarea>
@@ -450,6 +467,12 @@ onBeforeUnmount(() => {
 .welcome h2 {
   margin: 0 0 6px;
   font-size: 20px;
+}
+
+.extract-hint {
+  margin: 14px 0 0;
+  color: var(--accent);
+  font-size: 13px;
 }
 
 .starters {

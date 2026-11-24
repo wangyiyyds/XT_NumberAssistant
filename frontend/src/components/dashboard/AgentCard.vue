@@ -11,10 +11,15 @@ const props = defineProps<{
 }>()
 
 const tile = computed(() => agentTile(props.agent.name, props.agent.department, props.rank))
+const destination = computed(() =>
+  props.agent.name === '文案提取助手'
+    ? `/copywriting-extract/${props.agent.id}`
+    : `/chat/${props.agent.id}`,
+)
 </script>
 
 <template>
-  <router-link class="agent-card card" :to="`/chat/${agent.id}`">
+  <router-link class="agent-card card" :to="destination">
     <div class="agent-top">
       <span class="agent-avatar icon-tile" :style="{ '--tone': tile.tone }">
         <component :is="tile.icon" />

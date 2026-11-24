@@ -32,6 +32,45 @@ java -jar target/chat-backend-1.0.0.jar
 
 健康检查：`GET http://localhost:8080/health` → `{"status":"ok"}`
 
+### 配置文案提取助手
+
+在“文案提取助手”对话中直接发送公开视频链接，系统采用两段式处理：先使用本地 FunASR 提取口播文案（不做画面字幕 OCR），再调用 DeepSeek 对文字进行保真校对（修正明显错字、标点和分段，不扩写内容）。本地转写默认接口为 `http://127.0.0.1:8091/transcribe`。
+
+首次安装（Python 3.11，FFmpeg 需在 PATH 中）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File transcription/install.ps1
+```
+
+每次使用前在项目根目录启动：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File transcription/start.ps1
+```
+
+首次启动会下载中文识别、语音分段、标点模型到 `transcription/models/`，后续使用本地缓存。健康检查：`http://127.0.0.1:8091/health`。
+默认 CPU 运行，同一时间处理一个视频，视频限制 20 分钟、100MB。视频解析使用 yt-dlp；受平台支持情况和登录限制影响，并非所有分享链接均可下载。临时音视频在请求结束后自动清理。
+
+抖音有时会拒绝没有浏览器验证信息的下载请求。新版 Edge/Chrome 会使用 Windows 的 App-Bound 加密，程序可能无法直接读取其中的 Cookie（会报 `Failed to decrypt with DPAPI`）。遇到这种情况，请在已能正常打开抖音的浏览器中导出 **Netscape 格式**的 `cookies.txt`，保存到仅自己可访问的位置，然后在启动前执行：
+
+```powershell
+$env:YTDLP_COOKIES_FILE = 'D:\\安全位置\\douyin-cookies.txt'
+powershell -ExecutionPolicy Bypass -File transcription/start.ps1
+```
+
+该文件等同于已登录会话凭证，切勿上传、发送给他人或提交到 Git。服务只会在本机将它交给 yt-dlp，不会发送给本项目后端。若使用 Firefox，也可以改用 `$env:YTDLP_COOKIES_FROM_BROWSER = 'firefox'` 后再启动服务。
+
+还需配置 `DEEPSEEK_API_KEY`，供第二阶段的文本校对使用；该阶段只会发送本地 ASR 生成的文本，不会发送音视频文件。
+
+如果改为远程转写服务，可覆盖环境变量：
+
+```bash
+VIDEO_TRANSCRIPTION_URL=https://your-transcription-service.example.com/transcribe
+VIDEO_TRANSCRIPTION_API_KEY=your-api-key  # 若服务不需要鉴权，可省略
+```
+
+服务应接收 `POST` JSON：`{"url":"https://..."}`，并返回 `{"text":"提取出的文案"}`。也兼容 `transcript`、`copywriting`、`content` 字段（可置于 `data` 内）。
+
 ### 前端
 
 要求 Node 18+。
