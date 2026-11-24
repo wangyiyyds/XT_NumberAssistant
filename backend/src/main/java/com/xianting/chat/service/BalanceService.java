@@ -8,9 +8,6 @@ public interface BalanceService {
     /** 余额 DTO */
     BalanceDto getBalance(Long userId);
 
-    /** 静默扣减（余额不足时扣到 0，用于按条计费的对话） */
-    void deduct(Long userId, long cost);
-
-    /** 强制扣减（余额不足抛 402，用于付费刷新等操作） */
+    /** 原子扣减：余额不足抛 402（按条计费的对话、付费刷新等共用） */
     void deductOrThrow(Long userId, long cost);
 }

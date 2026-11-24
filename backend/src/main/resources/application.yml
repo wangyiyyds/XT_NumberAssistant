@@ -14,8 +14,8 @@ spring:
     default-property-inclusion: non_null
   mvc:
     async:
-      # Flux/SSE 走 Servlet 异步，超时与 ChatController 的 SseEmitter(120_000L) 对齐
-      request-timeout: 120000
+      # Flux/SSE 走 Servlet 异步，超时与 ChatController 的 SseEmitter(300_000L) 对齐
+      request-timeout: 300000
   ai:
     deepseek:
       # 用 ${} 语法读取你在 IDEA 里配置的环境变量
@@ -50,3 +50,9 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+logging:
+  level:
+    com.xianting.chat.mapper: debug   # 只有 Mapper，其余业务类不再 DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n"

@@ -29,7 +29,10 @@ public class ChatController {
     @PostMapping(value = "/agents", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody Map<String, Object> body) {
         Long userId = UserContext.require();
-        SseEmitter emitter = new SseEmitter(120_000L);
+        // 超时 300 秒。注意这是从请求进来开始算的"总时长"而不是空闲时间：
+        // 模型生成总耗时超过它就会切断连接（已生成的部分会由 ChatServiceImpl 以 error=true 落库）。
+        // 需与 application.yml 的 spring.mvc.async.request-timeout 保持一致。
+        SseEmitter emitter = new SseEmitter(300_000L);
         chatService.streamChat(emitter, userId, body);
         return emitter;
     }

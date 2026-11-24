@@ -81,6 +81,12 @@ public class ChatServiceImpl implements ChatService {
         }
         Agent agent = agentService.requireByPublicId(agentPublicId);
 
+        // 同步扣积分（余额不足抛 402）：必须放在返回 SseEmitter 之前，
+        // 异常才能经 GlobalExceptionHandler 变成正常的 HTTP 402 JSON 响应
+        // （前端 sse.ts 里 response.ok=false 会直接 throw 给 catch 块）；
+        // 如果放到异步线程里扣，HTTP 状态已经是 200，只能用 error 事件通知，前端难以区分。
+        balanceService.deductOrThrow(userId, COST_PER_MESSAGE);
+
         executor.submit(() -> {
             try {
                 runChat(emitter, userId, agent, text, conversationPublicId, clientMessageId, parentMessageId);
@@ -119,8 +125,7 @@ public class ChatServiceImpl implements ChatService {
             conversationRepository.save(conversation);
             isNew = true;
         }
-        //当前用户系统余额是否充足
-        balanceService.deduct(userId, COST_PER_MESSAGE);
+        // 积分已在 streamChat 的同步阶段扣过（余额不足的请求根本进不到这里）
 
         //构建用户消息对象
         String userMessageId = clientMessageId != null ? clientMessageId : UUID.randomUUID().toString();
@@ -142,13 +147,19 @@ public class ChatServiceImpl implements ChatService {
                     .data(objectMapper.writeValueAsString(conv), MediaType.APPLICATION_JSON));
         }
 
-        // 同会话历史（本次用户消息已先落库，按 publicId 排除）
+        // 同会话历史（本次用户消息已先落库，按 publicId 排除；
+        // error=true 的历史回复是失败留下的半截内容，不喂给模型，避免污染上下文）
         List<Message> history = messageRepository.listByConversationId(conversation.getId()).stream()
                 .filter(m -> !m.getPublicId().equals(userMessageId))
+                .filter(m -> !Boolean.TRUE.equals(m.getError()))
                 .toList();
 
         String assistantMessageId = UUID.randomUUID().toString();
         StringBuilder full = new StringBuilder();
+        // assistantMsg 在 try 之前创建、finally 里统一落库：
+        // 不管流式生成成功还是中途失败，这条回复在库里都有记录
+        Message assistantMsg = new Message();
+        boolean failed = false;
         // 真流式：在守护 worker 线程上阻塞消费模型片段，逐段转发 message 事件；
         // 客户端断开时 send 抛异常 -> try-with-resources 关流并取消上游订阅
         try (Stream<String> chunks = aiService.streamReply(agent, text, history).toStream()) {
@@ -167,24 +178,30 @@ public class ChatServiceImpl implements ChatService {
                 emitter.send(SseEmitter.event().name("message")
                         .data(objectMapper.writeValueAsString(m), MediaType.APPLICATION_JSON));
             }
+        } catch (Exception e) {
+            // 模型上游报错、客户端断开导致 SSE 发送失败、超时切断等都会走到这里
+            failed = true;
+            // 原样往上抛：由 streamChat 外层的 catch 给前端发 error 事件
+            throw e;
+        } finally {
+            //【关键】无论成功失败都把回复落库：
+            // 失败时 error=true，full 里是断掉前已生成的半截内容。
+            // 这样重新打开会话，前端能把这条半截回复按出错样式渲染出来，
+            // 而不是旧行为那样"提问在、回答没了、积分也扣了"。
+            assistantMsg.setPublicId(assistantMessageId);
+            assistantMsg.setConversationId(conversation.getId());
+            assistantMsg.setParentMessageId(userMessageId);
+            assistantMsg.setSender("agent");
+            assistantMsg.setText(full.toString());
+            assistantMsg.setError(failed);
+            assistantMsg.setCreatedAt(LocalDateTime.now());
+            messageRepository.save(assistantMsg);
+
+            conversation.setUpdatedAt(LocalDateTime.now());
+            conversationRepository.updateById(conversation);
         }
-        String reply = full.toString();
 
-        //把AI响应的消息存起来 会话历史存储
-        Message assistantMsg = new Message();
-        assistantMsg.setPublicId(assistantMessageId);
-        assistantMsg.setConversationId(conversation.getId());
-        assistantMsg.setParentMessageId(userMessageId);
-        assistantMsg.setSender("agent");
-        assistantMsg.setText(reply);
-        assistantMsg.setError(false);
-        assistantMsg.setCreatedAt(LocalDateTime.now());
-        messageRepository.save(assistantMsg);
-
-        conversation.setUpdatedAt(LocalDateTime.now());
-        conversationRepository.updateById(conversation);
-
-        //本次流式响应结束 final连接可以断开
+        // 只有 try 正常走完（没抛异常）才会执行到这里：发 final 事件告诉前端本轮结束，连接可以断开
         emitter.send(SseEmitter.event().name("final")
                 .data(objectMapper.writeValueAsString(
                         messageConverter.toDto(assistantMsg, conversation.getPublicId())),
