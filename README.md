@@ -9,8 +9,10 @@
 ## 目录
 
 ```
-backend/    Spring Boot 后端（端口 8080）
-frontend/   Vue3 + TS 前端（端口 5173，/api 代理到 8080）
+backend/           客户端 Spring Boot 后端（端口 8080）
+frontend/          客户端 Vue3 + TS 前端（端口 5173，/api 代理到 8080）
+backend-manage/    管理端 Spring Boot 后端（端口 8081，与客户端共用 MySQL 库 video_assistant）
+frontend-manage/   管理端 Vue3 + TS 前端（端口 5174，/api 代理到 8081）
 ```
 
 ## 启动
@@ -86,6 +88,30 @@ npm run dev
 ```
 test@zhufeng.cn / 123456
 ```
+
+### 管理端
+
+管理端与客户端共用同一个 MySQL 库（`video_assistant`），负责：套餐管理（套餐等级决定用户可用哪些部门/功能）、部门管理、用户管理（分配套餐/禁用）、智能体管理与提示词版本管理（草稿→发布→自动归档旧版→可回滚；发布后客户端对话立即使用新提示词，客户端零改动）。
+
+```bash
+# 后端（端口 8081）
+cd backend-manage
+mvn package -DskipTests
+java -jar target/manage-backend-1.0.0.jar
+
+# 前端（端口 5174）
+cd frontend-manage
+npm install
+npm run dev
+```
+
+首次启动自动执行 `schema-manage.sql`（幂等建 `t_admin`/`t_plan`/`t_plan_department`），给 `t_user` 幂等补 `plan_id` 列，并种入超管账号与 3 个套餐（基础版/专业版/旗舰版，默认按部门排序绑定 2/5/7 个部门）：
+
+```
+http://localhost:5174    admin / admin123456
+```
+
+注意：管理端 `app.jwt.secret` 与客户端不同（两端 token 载荷分别是 adminId/userId，共用密钥会导致身份串号）；建议先启动一次客户端 backend 让部门/智能体种子就绪，再启动管理端。
 
 ## 切换 MySQL
 

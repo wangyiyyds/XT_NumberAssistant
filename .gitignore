@@ -19,6 +19,17 @@ Thumbs.db
 
 backend/.workbuddy
 backend/docs
+# 管理端构建产物
+backend-manage/target/
+
+# Node
+frontend-manage/node_modules/
+frontend-manage/dist/
+
+# AI 助手 / 其他 IDE
+.claude/
+.qoder/
+.vs/
 transcription/.venv/
 transcription/models/
 transcription/__pycache__/
