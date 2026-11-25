@@ -41,9 +41,8 @@ public class DataSeeder implements CommandLineRunner {
     // v
     @Override
     public void run(String... args) {
-        if (departmentRepository.count() == 0) {
-            seedDepartmentsAndAgents();
-        }
+        // 幂等：每次启动只补齐缺失的部门/智能体，已存在的跳过
+        seedDepartmentsAndAgents();
         if (userRepository.count() == 0) {
             seedUser();
         }
@@ -118,21 +117,32 @@ public class DataSeeder implements CommandLineRunner {
         );
         int order = 0;
         for (D d : departments) {
-            Department dept = new Department();
-            dept.setPublicId(UUID.randomUUID().toString());
-            dept.setName(d.name());
-            dept.setEnabled(true);
-            dept.setBrandOnly(false);
-            dept.setSortOrder(order++);
-            departmentRepository.save(dept);
+            Department dept = departmentRepository.findByNameOrPublicId(d.name());
+            if (dept == null) {
+                dept = new Department();
+                dept.setPublicId(UUID.randomUUID().toString());
+                dept.setName(d.name());
+                dept.setEnabled(true);
+                dept.setBrandOnly(false);
+                dept.setSortOrder(order++);
+                departmentRepository.save(dept);
+            }
 
+            List<Agent> existingAgents = agentRepository.listByDepartment(dept.getId(), true);
             for (String agentName : d.agents()) {
+                if (existingAgents.stream().anyMatch(a -> agentName.equals(a.getName()))) {
+                    continue;
+                }
                 seedAgent(dept, agentName, d.name(), "通用".equals(d.name()) ? "通用" : d.name());
             }
         }
         // a few extra agents visible in 智能体中心 (no department filter)
         Department boss = departmentRepository.findByNameOrPublicId("BOSS决策部门");
+        List<Agent> bossAgents = agentRepository.listByDepartment(boss.getId(), true);
         for (String name : List.of("先霆全能助手", "灵感激发器")) {
+            if (bossAgents.stream().anyMatch(a -> name.equals(a.getName()))) {
+                continue;
+            }
             Agent agent = new Agent();
             agent.setPublicId(UUID.randomUUID().toString());
             agent.setDepartmentId(boss.getId());
