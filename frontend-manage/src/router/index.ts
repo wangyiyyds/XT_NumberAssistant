@@ -55,12 +55,6 @@ const router = createRouter({
           meta: { title: '用户管理' },
         },
         {
-          path: 'menus',
-          name: 'menus',
-          component: () => import('../views/MenuListView.vue'),
-          meta: { title: '菜单管理' },
-        },
-        {
           path: 'admins',
           name: 'admins',
           component: () => import('../views/AdminListView.vue'),

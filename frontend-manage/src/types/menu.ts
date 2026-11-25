@@ -8,11 +8,3 @@ export interface Menu {
   icon?: string
   sortOrder: number
 }
-
-/** 菜单新建/编辑请求体 */
-export interface MenuSaveRequest {
-  name: string
-  path: string
-  icon?: string
-  sortOrder: number
-}

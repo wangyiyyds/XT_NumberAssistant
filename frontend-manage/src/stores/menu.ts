@@ -20,10 +20,5 @@ export const useMenuStore = defineStore('menu', {
       }
       this.loaded = true
     },
-    /** 菜单管理页增删改后强制刷新，侧栏即时同步 */
-    async reload() {
-      this.menus = await fetchMenus()
-      this.loaded = true
-    },
   },
 })
