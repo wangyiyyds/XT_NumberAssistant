@@ -103,9 +103,7 @@ public class AgentAdminServiceImpl implements AgentAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AgentDetailDto create(AgentSaveRequest request, String adminUsername) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "智能体名称必填");
-        }
+        // 名称/所属部门的必填与长度由 AgentSaveRequest 注解校验
         Department dept = requireDepartment(request.getDepartmentId());
 
         Agent agent = agentAdminConverter.toEntity(request);
@@ -140,9 +138,6 @@ public class AgentAdminServiceImpl implements AgentAdminService {
     @Override
     public AgentDetailDto update(String publicId, AgentSaveRequest request) {
         Agent agent = requireByPublicId(publicId);
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "智能体名称必填");
-        }
         Department dept = requireDepartment(request.getDepartmentId());
         agent.setName(request.getName().trim());
         agent.setDepartmentId(dept.getId());
@@ -172,10 +167,8 @@ public class AgentAdminServiceImpl implements AgentAdminService {
         return agent;
     }
 
+    /** 部门存在性校验：入参非空由 DTO 的 @NotBlank（写接口）或调用方判空（分页过滤）保证 */
     private Department requireDepartment(String departmentPublicId) {
-        if (departmentPublicId == null || departmentPublicId.isBlank()) {
-            throw new ApiException(400, "请选择所属部门");
-        }
         Department dept = departmentRepository.findByPublicId(departmentPublicId);
         if (dept == null) throw new ApiException(404, "部门不存在: " + departmentPublicId);
         return dept;

@@ -33,6 +33,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+        <!-- Bean Validation：请求体字段校验注解（@NotBlank/@Size/@Pattern），
+             替代原先散落在 Service 层的手写 if-throw；校验失败由 GlobalExceptionHandler 统一转 400 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
         <!-- MapStruct：编译期生成 Entity <-> DTO 转换器 -->
         <dependency>
             <groupId>org.mapstruct</groupId>

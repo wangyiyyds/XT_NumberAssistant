@@ -5,6 +5,7 @@ import com.xianting.manage.dto.PlanDepartmentsRequest;
 import com.xianting.manage.dto.PlanDto;
 import com.xianting.manage.dto.PlanSaveRequest;
 import com.xianting.manage.service.PlanService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,12 +39,12 @@ public class PlanController {
     }
 
     @PostMapping
-    public Result<PlanDto> create(@RequestBody PlanSaveRequest request) {
+    public Result<PlanDto> create(@Valid @RequestBody PlanSaveRequest request) {
         return Result.ok(planService.create(request));
     }
 
     @PutMapping("/{publicId}")
-    public Result<PlanDto> update(@PathVariable String publicId, @RequestBody PlanSaveRequest request) {
+    public Result<PlanDto> update(@PathVariable String publicId, @Valid @RequestBody PlanSaveRequest request) {
         return Result.ok(planService.update(publicId, request));
     }
 

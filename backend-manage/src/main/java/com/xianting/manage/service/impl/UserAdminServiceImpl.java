@@ -83,10 +83,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UserAdminDto create(CreateUserRequest request) {
-        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+        // 邮箱/密码的必填、格式与长度由 CreateUserRequest 注解校验，此处只做归一化与唯一性
+        String email = request.getEmail().trim().toLowerCase();
         String password = request.getPassword();
-        if (email.isBlank()) throw new ApiException(400, "邮箱必填");
-        if (password == null || password.length() < 6) throw new ApiException(400, "初始密码至少6位");
         if (userRepository.existsByEmail(email)) throw new ApiException(409, "该邮箱已注册");
 
         User user = new User();

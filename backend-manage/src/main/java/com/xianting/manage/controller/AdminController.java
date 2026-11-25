@@ -4,6 +4,7 @@ import com.xianting.manage.common.Result;
 import com.xianting.manage.dto.AdminDto;
 import com.xianting.manage.dto.AdminSaveRequest;
 import com.xianting.manage.service.AdminService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,7 +30,7 @@ public class AdminController {
     }
 
     @PostMapping
-    public Result<AdminDto> create(@RequestBody AdminSaveRequest request) {
+    public Result<AdminDto> create(@Valid @RequestBody AdminSaveRequest request) {
         return Result.ok(adminService.create(request));
     }
 }

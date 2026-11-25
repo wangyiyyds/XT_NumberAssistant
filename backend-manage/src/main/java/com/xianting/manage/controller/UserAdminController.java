@@ -1,6 +1,5 @@
 package com.xianting.manage.controller;
 
-import com.xianting.manage.common.ApiException;
 import com.xianting.manage.common.PageResult;
 import com.xianting.manage.common.Result;
 import com.xianting.manage.dto.AssignPlanRequest;
@@ -8,6 +7,7 @@ import com.xianting.manage.dto.CreateUserRequest;
 import com.xianting.manage.dto.SetDisabledRequest;
 import com.xianting.manage.dto.UserAdminDto;
 import com.xianting.manage.service.UserAdminService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,21 +38,20 @@ public class UserAdminController {
     }
 
     @PostMapping
-    public Result<UserAdminDto> create(@RequestBody CreateUserRequest request) {
+    public Result<UserAdminDto> create(@Valid @RequestBody CreateUserRequest request) {
         return Result.ok(userAdminService.create(request));
     }
 
     /** planId 传 null 表示清除用户套餐 */
     @PutMapping("/{publicId}/plan")
-    public Result<UserAdminDto> assignPlan(@PathVariable String publicId, @RequestBody AssignPlanRequest request) {
+    public Result<UserAdminDto> assignPlan(@PathVariable String publicId,
+                                           @Valid @RequestBody AssignPlanRequest request) {
         return Result.ok(userAdminService.assignPlan(publicId, request.getPlanId()));
     }
 
     @PutMapping("/{publicId}/disabled")
-    public Result<UserAdminDto> setDisabled(@PathVariable String publicId, @RequestBody SetDisabledRequest request) {
-        if (request.getDisabled() == null) {
-            throw new ApiException(400, "disabled 必填");
-        }
+    public Result<UserAdminDto> setDisabled(@PathVariable String publicId,
+                                            @Valid @RequestBody SetDisabledRequest request) {
         return Result.ok(userAdminService.setDisabled(publicId, request.getDisabled()));
     }
 }

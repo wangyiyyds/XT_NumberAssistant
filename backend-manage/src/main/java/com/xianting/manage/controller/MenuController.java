@@ -4,6 +4,7 @@ import com.xianting.manage.common.Result;
 import com.xianting.manage.dto.MenuDto;
 import com.xianting.manage.dto.MenuSaveRequest;
 import com.xianting.manage.service.MenuService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,12 +38,12 @@ public class MenuController {
     }
 
     @PostMapping
-    public Result<MenuDto> create(@RequestBody MenuSaveRequest request) {
+    public Result<MenuDto> create(@Valid @RequestBody MenuSaveRequest request) {
         return Result.ok(menuService.create(request));
     }
 
     @PutMapping("/{publicId}")
-    public Result<MenuDto> update(@PathVariable String publicId, @RequestBody MenuSaveRequest request) {
+    public Result<MenuDto> update(@PathVariable String publicId, @Valid @RequestBody MenuSaveRequest request) {
         return Result.ok(menuService.update(publicId, request));
     }
 

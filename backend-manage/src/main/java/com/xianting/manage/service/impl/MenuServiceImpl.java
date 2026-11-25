@@ -37,7 +37,7 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public MenuDto create(MenuSaveRequest request) {
-        validate(request);
+        // 必填/格式/长度由 MenuSaveRequest 注解校验，此处只查 path 全表唯一
         if (menuRepository.countByPath(request.getPath().trim()) > 0) {
             throw new ApiException(409, "路由路径 " + request.getPath().trim() + " 已被其他菜单占用");
         }
@@ -52,7 +52,6 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public MenuDto update(String publicId, MenuSaveRequest request) {
         Menu menu = requireByPublicId(publicId);
-        validate(request);
         // uk_menu_path 全表唯一：路径变化时确认没有被别的菜单占用
         String newPath = request.getPath().trim();
         if (!menu.getPath().equals(newPath)) {
@@ -75,21 +74,6 @@ public class MenuServiceImpl implements MenuService {
     public void delete(String publicId) {
         Menu menu = requireByPublicId(publicId);
         menuRepository.removeById(menu.getId());
-    }
-
-    private void validate(MenuSaveRequest request) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "菜单名称必填");
-        }
-        if (request.getPath() == null || request.getPath().isBlank()) {
-            throw new ApiException(400, "路由路径必填");
-        }
-        if (!request.getPath().trim().startsWith("/")) {
-            throw new ApiException(400, "路由路径须以 / 开头");
-        }
-        if (request.getSortOrder() == null) {
-            throw new ApiException(400, "排序不能为空");
-        }
     }
 
     private Menu requireByPublicId(String publicId) {

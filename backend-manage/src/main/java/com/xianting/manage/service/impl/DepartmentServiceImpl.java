@@ -41,9 +41,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     public DepartmentDto create(DepartmentSaveRequest request) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "部门名称必填");
-        }
+        // 名称必填/长度由 DepartmentSaveRequest 注解校验
         Department dept = departmentConverter.toEntity(request);
         dept.setPublicId(UUID.randomUUID().toString());
         dept.setName(request.getName().trim());
@@ -57,9 +55,6 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public DepartmentDto update(String publicId, DepartmentSaveRequest request) {
         Department dept = requireByPublicId(publicId);
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "部门名称必填");
-        }
         dept.setName(request.getName().trim());
         // 可选项为 null 时保持原值（启停/排序由同一接口承载）
         if (request.getEnabled() != null) dept.setEnabled(request.getEnabled());

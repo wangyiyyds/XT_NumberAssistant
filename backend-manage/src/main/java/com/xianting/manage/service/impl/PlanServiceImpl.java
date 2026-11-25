@@ -75,7 +75,7 @@ public class PlanServiceImpl implements PlanService {
 
     @Override
     public PlanDto create(PlanSaveRequest request) {
-        validate(request);
+        // 名称/等级必填与长度由 PlanSaveRequest 注解校验，此处只查 level 唯一
         if (planRepository.countByLevel(request.getLevel()) > 0) {
             throw new ApiException(409, "套餐等级 " + request.getLevel() + " 已存在");
         }
@@ -88,7 +88,6 @@ public class PlanServiceImpl implements PlanService {
     @Override
     public PlanDto update(String publicId, PlanSaveRequest request) {
         Plan plan = requireByPublicId(publicId);
-        validate(request);
         // uk_plan_level 全表唯一：等级变化时确认没有被别的套餐占用
         if (!plan.getLevel().equals(request.getLevel())) {
             Plan holder = planRepository.listAllOrderByLevel().stream()
@@ -139,15 +138,6 @@ public class PlanServiceImpl implements PlanService {
         }
         planDepartmentRepository.deleteByPlanId(plan.getId());
         planRepository.removeById(plan.getId());
-    }
-
-    private void validate(PlanSaveRequest request) {
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(400, "套餐名称必填");
-        }
-        if (request.getLevel() == null) {
-            throw new ApiException(400, "套餐等级必填");
-        }
     }
 
     private Plan requireByPublicId(String publicId) {

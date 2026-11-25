@@ -32,9 +32,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     public Map<String, Object> login(String username, String password) {
-        if (username == null || password == null) {
-            throw new ApiException(400, "username and password are required");
-        }
+        // 必填校验已由 LoginRequest 的 @NotBlank 完成
         Admin admin = adminRepository.findByUsername(username.trim());
         if (admin == null || !PasswordUtil.matches(password, admin.getPassword())) {
             throw new ApiException(401, "用户名或密码错误");

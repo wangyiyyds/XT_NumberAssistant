@@ -3,7 +3,9 @@ package com.xianting.manage.controller;
 import com.xianting.manage.common.AdminContext;
 import com.xianting.manage.common.Result;
 import com.xianting.manage.dto.AdminDto;
+import com.xianting.manage.dto.LoginRequest;
 import com.xianting.manage.service.AdminAuthService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,8 +25,8 @@ public class AdminAuthController {
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody Map<String, String> body) {
-        return Result.ok(adminAuthService.login(body.get("username"), body.get("password")));
+    public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
+        return Result.ok(adminAuthService.login(request.getUsername(), request.getPassword()));
     }
 
     @GetMapping("/me")

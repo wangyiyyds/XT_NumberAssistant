@@ -7,6 +7,7 @@ import com.xianting.manage.dto.PromptDto;
 import com.xianting.manage.dto.PromptSaveRequest;
 import com.xianting.manage.service.AdminAuthService;
 import com.xianting.manage.service.PromptService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,7 +43,7 @@ public class PromptController {
     /** 基于当前 ACTIVE 版本新建草稿（version 自动 +1） */
     @PostMapping("/agents/{agentPublicId}/prompts")
     public Result<PromptDetailDto> createDraft(@PathVariable String agentPublicId,
-                                               @RequestBody PromptSaveRequest request) {
+                                               @Valid @RequestBody PromptSaveRequest request) {
         String admin = adminAuthService.usernameOf(AdminContext.require());
         return Result.ok(promptService.createDraft(agentPublicId, request, admin));
     }
@@ -55,7 +56,7 @@ public class PromptController {
     /** 编辑草稿（仅 DRAFT 可改） */
     @PutMapping("/prompts/{publicId}")
     public Result<PromptDetailDto> updateDraft(@PathVariable String publicId,
-                                               @RequestBody PromptSaveRequest request) {
+                                               @Valid @RequestBody PromptSaveRequest request) {
         String admin = adminAuthService.usernameOf(AdminContext.require());
         return Result.ok(promptService.updateDraft(publicId, request, admin));
     }

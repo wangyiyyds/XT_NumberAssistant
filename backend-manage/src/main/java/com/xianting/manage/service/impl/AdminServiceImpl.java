@@ -33,7 +33,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public AdminDto create(AdminSaveRequest request) {
-        validate(request);
+        // 字段级校验（必填/长度）由 AdminSaveRequest 上的注解完成，此处只做唯一性与归一化
         String username = request.getUsername().trim();
         if (adminRepository.findByUsername(username) != null) {
             throw new ApiException(409, "账号 " + username + " 已存在");
@@ -46,14 +46,5 @@ public class AdminServiceImpl implements AdminService {
         admin.setDisabled(false);
         adminRepository.save(admin);
         return adminConverter.toDto(admin);
-    }
-
-    private void validate(AdminSaveRequest request) {
-        if (request.getUsername() == null || request.getUsername().isBlank()) {
-            throw new ApiException(400, "登录账号必填");
-        }
-        if (request.getPassword() == null || request.getPassword().isEmpty()) {
-            throw new ApiException(400, "密码必填");
-        }
     }
 }

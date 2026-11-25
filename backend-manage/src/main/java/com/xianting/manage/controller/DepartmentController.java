@@ -4,6 +4,7 @@ import com.xianting.manage.common.Result;
 import com.xianting.manage.dto.DepartmentDto;
 import com.xianting.manage.dto.DepartmentSaveRequest;
 import com.xianting.manage.service.DepartmentService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,12 +33,13 @@ public class DepartmentController {
     }
 
     @PostMapping
-    public Result<DepartmentDto> create(@RequestBody DepartmentSaveRequest request) {
+    public Result<DepartmentDto> create(@Valid @RequestBody DepartmentSaveRequest request) {
         return Result.ok(departmentService.create(request));
     }
 
     @PutMapping("/{publicId}")
-    public Result<DepartmentDto> update(@PathVariable String publicId, @RequestBody DepartmentSaveRequest request) {
+    public Result<DepartmentDto> update(@PathVariable String publicId,
+                                        @Valid @RequestBody DepartmentSaveRequest request) {
         return Result.ok(departmentService.update(publicId, request));
     }
 

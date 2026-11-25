@@ -83,9 +83,7 @@ public class PromptServiceImpl implements PromptService {
     @Override
     public PromptDetailDto createDraft(String agentPublicId, PromptSaveRequest request, String adminUsername) {
         Agent agent = requireAgent(agentPublicId);
-        if (request.getContent() == null || request.getContent().isBlank()) {
-            throw new ApiException(400, "提示词正文必填");
-        }
+        // 正文必填由 PromptSaveRequest 注解校验
         // 血缘默认挂当前 ACTIVE 版本；没有 ACTIVE 时挂最新版本（version 降序首条）
         Prompt parent = promptRepository.findActiveByAgentId(agent.getId());
         if (parent == null) {
@@ -120,9 +118,6 @@ public class PromptServiceImpl implements PromptService {
         Prompt prompt = requireByPublicId(publicId);
         if (!"DRAFT".equals(prompt.getStatus())) {
             throw new ApiException(409, "已发布版本不可修改，请另存新版本");
-        }
-        if (request.getContent() == null || request.getContent().isBlank()) {
-            throw new ApiException(400, "提示词正文必填");
         }
         prompt.setName(request.getName());
         prompt.setDescription(request.getDescription());

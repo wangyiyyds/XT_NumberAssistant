@@ -8,6 +8,7 @@ import com.xianting.manage.dto.AgentDetailDto;
 import com.xianting.manage.dto.AgentSaveRequest;
 import com.xianting.manage.service.AdminAuthService;
 import com.xianting.manage.service.AgentAdminService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,13 +47,14 @@ public class AgentAdminController {
     }
 
     @PostMapping
-    public Result<AgentDetailDto> create(@RequestBody AgentSaveRequest request) {
+    public Result<AgentDetailDto> create(@Valid @RequestBody AgentSaveRequest request) {
         String admin = adminAuthService.usernameOf(AdminContext.require());
         return Result.ok(agentAdminService.create(request, admin));
     }
 
     @PutMapping("/{publicId}")
-    public Result<AgentDetailDto> update(@PathVariable String publicId, @RequestBody AgentSaveRequest request) {
+    public Result<AgentDetailDto> update(@PathVariable String publicId,
+                                         @Valid @RequestBody AgentSaveRequest request) {
         return Result.ok(agentAdminService.update(publicId, request));
     }
 
