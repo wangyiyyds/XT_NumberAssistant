@@ -19,6 +19,7 @@ import java.util.UUID;
 
 /**
  * 管理端幂等种子：超管账号 + 3 个套餐 + 套餐-部门默认关系 + 左侧导航菜单。
+ * 菜单只读（无管理界面），新增页面时在此追加一行，并同步前端路由。
  * 部门数据由客户端 DataSeeder 负责；若管理端先于客户端启动（t_department 为空），
  * 跳过关系绑定，后续由管理员在套餐编辑页手工勾选。
  */
@@ -80,14 +81,13 @@ public class DataSeeder implements CommandLineRunner {
         bindDepartments(enterprise, departments, departments.size());
     }
 
-    /** 左侧导航初始菜单，与原前端硬编码 MENU_ITEMS 一致，另加「菜单管理」自身 */
+    /** 左侧导航初始菜单，与原前端硬编码 MENU_ITEMS 一致；菜单只读，调整改这里与 schema-manage.sql */
     private void seedMenus() {
         seedMenu("智能体管理", "/agents", "Cpu", 1);
         seedMenu("套餐管理", "/plans", "Goods", 2);
         seedMenu("部门管理", "/departments", "OfficeBuilding", 3);
         seedMenu("用户管理", "/users", "User", 4);
-        seedMenu("菜单管理", "/menus", "Menu", 5);
-        seedMenu("管理员管理", "/admins", "Key", 6);
+        seedMenu("管理员管理", "/admins", "Key", 5);
     }
 
     private void seedMenu(String name, String path, String icon, int sortOrder) {

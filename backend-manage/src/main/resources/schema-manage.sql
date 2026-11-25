@@ -7,6 +7,10 @@
 --   2026-11-24  t_user 增加 plan_id 列（BIGINT NULL）+ idx_user_plan 索引：用户所属套餐，
 --               客户端 User 实体不映射该列，客户端读写不受影响
 --   2026-11-24  新建 t_menu（管理端左侧导航菜单）
+--   2026-11-25  下线「菜单管理」功能：菜单改为只读（仅保留 GET /api/menus 供侧栏渲染），
+--               删除 /api/menus 的 POST/PUT/DELETE 与 MenuSaveRequest/MenuConverter.toEntity；
+--               本文件同步清理历史种下的 path='/menus' 那一行（否则侧栏出现指向已删路由的死链）。
+--               菜单内容今后只改这里与 DataSeeder.seedMenus()，不再提供后台编辑入口。
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS t_admin (
@@ -42,7 +46,9 @@ CREATE TABLE IF NOT EXISTS t_plan_department (
     INDEX idx_plan_department_dept (department_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 管理端左侧导航菜单：前端登录后经 /api/menus 读取渲染，可在「菜单管理」页维护。
+-- 管理端左侧导航菜单：前端登录后经 /api/menus 读取渲染，只读、无管理界面。
+-- 菜单项对应编译期写死的前端路由（frontend-manage/src/router/index.ts），
+-- 增删页面必须同时改前端路由，故本表内容以种子数据为唯一事实源，不在后台开放编辑。
 -- icon 存 @element-plus/icons-vue 的导出名（如 Cpu），由前端映射成组件。
 CREATE TABLE IF NOT EXISTS t_menu (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -56,6 +62,10 @@ CREATE TABLE IF NOT EXISTS t_menu (
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_menu_path (path)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 清理历史种子留下的「菜单管理」入口：该页面已下线，前端路由也一并删除，
+-- 留着会在侧栏生成一个指向 NotFoundView 的死链。DELETE 天然幂等，可每次启动重跑。
+DELETE FROM t_menu WHERE path = '/menus';
 
 -- ----------------------------------------------------------------------------
 -- 变更：t_user 增加 plan_id 列 + idx_user_plan 索引（2026-11-24）

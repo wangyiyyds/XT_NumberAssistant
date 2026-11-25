@@ -10,9 +10,4 @@ public interface MenuRepository extends IRepository<Menu> {
 
     /** 全部菜单，按 sortOrder 升序 */
     List<Menu> listAllOrderBySortOrder();
-
-    Menu findByPublicId(String publicId);
-
-    /** 路径唯一性预检（uk_menu_path 兜底） */
-    long countByPath(String path);
 }

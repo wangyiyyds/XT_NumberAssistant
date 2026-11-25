@@ -19,20 +19,4 @@ public class MenuRepositoryImpl extends CrudRepository<MenuMapper, Menu> impleme
         qw.orderByAsc("sort_order");
         return getBaseMapper().selectList(qw);
     }
-
-    @Override
-    public Menu findByPublicId(String publicId) {
-        //  WHERE public_id = {publicId}
-        QueryWrapper<Menu> qw = new QueryWrapper<>();
-        qw.eq("public_id", publicId);
-        return getBaseMapper().selectOne(qw);
-    }
-
-    @Override
-    public long countByPath(String path) {
-        //  WHERE path = {path}
-        QueryWrapper<Menu> qw = new QueryWrapper<>();
-        qw.eq("path", path);
-        return getBaseMapper().selectCount(qw);
-    }
 }
